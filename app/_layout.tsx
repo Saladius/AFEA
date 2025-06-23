@@ -39,7 +39,7 @@ export default function RootLayout() {
     } else if (!user && inAuthGroup) {
       // Utilisateur non connecté mais dans les onglets, rediriger vers landing
       router.replace('/landing');
-    } else if (!user && segments[0] !== 'landing' && segments[0] !== 'auth') {
+    } else if (!user && segments.length > 0 && segments[0] !== 'landing' && segments[0] !== 'auth') {
       // Utilisateur non connecté et pas sur landing/auth, rediriger vers landing
       router.replace('/landing');
     }

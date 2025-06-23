@@ -32,13 +32,8 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { error } = await signOut();
-              if (error) {
-                Alert.alert('Erreur', 'Impossible de se déconnecter. Veuillez réessayer.');
-              } else {
-                // Redirect to landing page after successful logout
-                router.replace('/landing');
-              }
+              await signOut();
+              // The redirect will be handled automatically by the auth state change in _layout.tsx
             } catch (err) {
               Alert.alert('Erreur', 'Une erreur est survenue lors de la déconnexion.');
             }
