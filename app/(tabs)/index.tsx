@@ -420,8 +420,7 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     textAlign: 'center',
     fontWeight: '400',
-    lineHeight: 14,
-    minHeight: 28,
+    lineHeight: 12,
   },
 
   // Suggestions
