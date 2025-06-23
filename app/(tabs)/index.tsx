@@ -204,6 +204,9 @@ export default function HomeScreen() {
           </View>
           <View style={styles.suggestionSubheader}>
             <Text style={styles.suggestionTitle}>Just Right For Today's Weather</Text>
+            <TouchableOpacity style={styles.reloadButton}>
+              <RefreshCw size={16} color="#8E8E93" />
+            </TouchableOpacity>
           </View>
           
           <View style={styles.suggestionsGrid}>
@@ -451,8 +454,8 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     flex: 1,
   },
-  suggestionStar: {
-    fontSize: 16,
+  reloadButton: {
+    padding: 4,
   },
   suggestionsGrid: {
     flexDirection: 'row',
