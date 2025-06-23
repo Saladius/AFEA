@@ -204,7 +204,6 @@ export default function HomeScreen() {
           </View>
           <View style={styles.suggestionSubheader}>
             <Text style={styles.suggestionTitle}>Just Right For Today's Weather</Text>
-            <Text style={styles.suggestionStar}>⭐</Text>
           </View>
           
           <View style={styles.suggestionsGrid}>
