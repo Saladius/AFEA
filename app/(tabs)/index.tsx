@@ -331,11 +331,12 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     paddingHorizontal: 24,
-    gap: 16,
+    paddingRight: 24,
   },
   categoryCard: {
     alignItems: 'center',
     minWidth: 70,
+    marginRight: 16,
   },
   categoryCardActive: {
     // Active state handled by icon and text
