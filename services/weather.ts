@@ -20,37 +20,71 @@ interface LocationCoords {
   longitude: number;
 }
 
-interface GoogleWeatherResponse {
-  current_conditions: Array<{
-    condition: string;
-    temp_c: string;
-    temp_f: string;
-    wind_condition: string;
-    humidity: string;
+interface OpenWeatherResponse {
+  name: string;
+  main: {
+    temp: number;
+    feels_like: number;
+    temp_min: number;
+    temp_max: number;
+    pressure: number;
+    humidity: number;
+  };
+  weather: Array<{
+    id: number;
+    main: string;
+    description: string;
+    icon: string;
   }>;
-  forecast_conditions: Array<{
-    day_of_week: string;
-    low: string;
-    high: string;
-    condition: string;
+  wind: {
+    speed: number;
+    deg: number;
+  };
+  sys: {
+    country: string;
+    sunrise: number;
+    sunset: number;
+  };
+}
+
+interface OpenWeatherForecastResponse {
+  list: Array<{
+    dt: number;
+    main: {
+      temp: number;
+      temp_min: number;
+      temp_max: number;
+      pressure: number;
+      humidity: number;
+    };
+    weather: Array<{
+      id: number;
+      main: string;
+      description: string;
+      icon: string;
+    }>;
+    wind: {
+      speed: number;
+      deg: number;
+    };
+    dt_txt: string;
   }>;
-  forecast_information: Array<{
-    city: string;
-    postal_code: string;
-    latitude_e6: string;
-    longitude_e6: string;
-    forecast_date: string;
-    current_date_time: string;
-    unit_system: string;
-  }>;
+  city: {
+    name: string;
+    country: string;
+    coord: {
+      lat: number;
+      lon: number;
+    };
+  };
 }
 
 class WeatherService {
-  private apiKey = process.env.EXPO_PUBLIC_GOOGLE_VISION_API_KEY || '';
-  private googleWeatherUrl = 'https://www.google.com/ig/api';
+  private apiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || 'demo';
+  private baseUrl = 'https://api.openweathermap.org/data/2.5';
 
   private isValidApiKey(): boolean {
-    return !!(this.apiKey && this.apiKey !== 'your_google_vision_api_key' && this.apiKey.length > 10);
+    return !!(this.apiKey && this.apiKey !== 'demo' && this.apiKey.length > 10);
   }
 
   async getCurrentLocation(): Promise<LocationCoords> {
@@ -82,38 +116,67 @@ class WeatherService {
     });
   }
 
-  async getLocationName(coords: LocationCoords): Promise<string> {
-    try {
-      // Use Google Geocoding API with the same API key
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${this.apiKey}&language=fr`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch location');
-      }
-      
-      const data = await response.json();
-      
-      if (data.results && data.results.length > 0) {
-        // Extract city name from the results
-        const addressComponents = data.results[0].address_components;
-        const city = addressComponents.find((component: any) => 
-          component.types.includes('locality') || component.types.includes('administrative_area_level_1')
-        );
-        return city ? city.long_name : 'Localisation inconnue';
-      }
-      
-      return 'Rabat'; // Fallback
-    } catch (error) {
-      console.error('Error getting location name:', error);
-      return 'Rabat'; // Fallback
-    }
+  private getWeatherIcon(iconCode: string): string {
+    const iconMap: { [key: string]: string } = {
+      '01d': '☀️', // clear sky day
+      '01n': '🌙', // clear sky night
+      '02d': '⛅', // few clouds day
+      '02n': '☁️', // few clouds night
+      '03d': '☁️', // scattered clouds
+      '03n': '☁️',
+      '04d': '☁️', // broken clouds
+      '04n': '☁️',
+      '09d': '🌧️', // shower rain
+      '09n': '🌧️',
+      '10d': '🌦️', // rain day
+      '10n': '🌧️', // rain night
+      '11d': '⛈️', // thunderstorm
+      '11n': '⛈️',
+      '13d': '❄️', // snow
+      '13n': '❄️',
+      '50d': '🌫️', // mist
+      '50n': '🌫️',
+    };
+    
+    return iconMap[iconCode] || '☀️';
+  }
+
+  private translateCondition(condition: string): string {
+    const translations: { [key: string]: string } = {
+      'clear sky': 'Ciel dégagé',
+      'few clouds': 'Quelques nuages',
+      'scattered clouds': 'Nuages épars',
+      'broken clouds': 'Nuageux',
+      'shower rain': 'Averses',
+      'rain': 'Pluie',
+      'thunderstorm': 'Orage',
+      'snow': 'Neige',
+      'mist': 'Brume',
+      'fog': 'Brouillard',
+      'haze': 'Brume de chaleur',
+      'dust': 'Poussière',
+      'sand': 'Sable',
+      'ash': 'Cendres volcaniques',
+      'squall': 'Grain',
+      'tornado': 'Tornade',
+      'overcast clouds': 'Couvert',
+      'light rain': 'Pluie légère',
+      'moderate rain': 'Pluie modérée',
+      'heavy intensity rain': 'Pluie forte',
+      'very heavy rain': 'Pluie très forte',
+      'extreme rain': 'Pluie extrême',
+      'freezing rain': 'Pluie verglaçante',
+      'light intensity shower rain': 'Averses légères',
+      'heavy intensity shower rain': 'Averses fortes',
+      'ragged shower rain': 'Averses irrégulières',
+    };
+    
+    return translations[condition.toLowerCase()] || condition;
   }
 
   async getCurrentWeather(coords: LocationCoords): Promise<WeatherData['current']> {
     if (!this.isValidApiKey()) {
-      console.warn('Google API key not configured, using fallback weather data');
+      console.warn('OpenWeatherMap API key not configured, using fallback weather data');
       return {
         temperature: 25,
         condition: 'Ensoleillé',
@@ -122,32 +185,31 @@ class WeatherService {
     }
 
     try {
-      // Use Google Weather API (via Google Search API or custom endpoint)
-      // Note: Google doesn't have a direct public weather API, so we'll use a workaround
-      // or integrate with Google's weather data through other means
-      
-      // For now, we'll use a more reliable approach with OpenWeatherMap as backup
-      // but with enhanced data processing
       const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${coords.latitude}&lon=${coords.longitude}&appid=demo&units=metric&lang=fr`
+        `${this.baseUrl}/weather?lat=${coords.latitude}&lon=${coords.longitude}&appid=${this.apiKey}&units=metric&lang=fr`
       );
       
-      // Since we're using the demo key, we'll provide realistic fallback data
-      // based on the location (Morocco/Rabat climate)
-      const currentHour = new Date().getHours();
-      const isDay = currentHour >= 6 && currentHour < 20;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      // Simulate realistic weather for Morocco
-      const temperature = this.getRealisticTemperature(coords);
-      const condition = this.getRealisticCondition(coords, isDay);
+      const data: OpenWeatherResponse = await response.json();
+      
+      console.log('🌤️ Current weather data received:', {
+        location: data.name,
+        temperature: Math.round(data.main.temp),
+        condition: data.weather[0].description,
+        icon: data.weather[0].icon,
+        rawData: data
+      });
       
       return {
-        temperature: Math.round(temperature),
-        condition: condition.description,
-        icon: condition.icon,
+        temperature: Math.round(data.main.temp),
+        condition: this.translateCondition(data.weather[0].description),
+        icon: this.getWeatherIcon(data.weather[0].icon),
       };
     } catch (error) {
-      console.error('Error fetching current weather:', error);
+      console.error('❌ Error fetching current weather:', error);
       // Fallback data for Morocco
       return {
         temperature: 25,
@@ -159,18 +221,126 @@ class WeatherService {
 
   async getWeatherForecast(coords: LocationCoords): Promise<WeatherData['forecast']> {
     if (!this.isValidApiKey()) {
-      console.warn('Google API key not configured, using fallback forecast data');
+      console.warn('OpenWeatherMap API key not configured, using fallback forecast data');
       return this.getRealisticForecast(coords);
     }
 
     try {
-      // Since Google doesn't provide a direct weather API, we'll create
-      // a realistic forecast based on location and season
-      return this.getRealisticForecast(coords);
+      const response = await fetch(
+        `${this.baseUrl}/forecast?lat=${coords.latitude}&lon=${coords.longitude}&appid=${this.apiKey}&units=metric&lang=fr`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data: OpenWeatherForecastResponse = await response.json();
+      
+      console.log('📅 Raw forecast data received from OpenWeatherMap:');
+      console.log('Total forecast entries:', data.list.length);
+      console.log('First 10 entries:', data.list.slice(0, 10).map(item => ({
+        date: item.dt_txt,
+        temp: item.main.temp,
+        condition: item.weather[0].description,
+        icon: item.weather[0].icon
+      })));
+      
+      // Group forecast data by day (OpenWeatherMap returns 5-day forecast with 3-hour intervals)
+      const dailyForecasts = this.groupForecastByDay(data.list);
+      
+      console.log('📊 Processed daily forecasts:');
+      dailyForecasts.forEach((day, index) => {
+        console.log(`Day ${index + 1}:`, {
+          day: day.day,
+          date: day.date,
+          high: day.high,
+          low: day.low,
+          condition: day.condition,
+          icon: day.icon
+        });
+      });
+      
+      return dailyForecasts.slice(0, 7); // Return only 7 days
     } catch (error) {
-      console.error('Error fetching weather forecast:', error);
+      console.error('❌ Error fetching weather forecast:', error);
+      console.log('🔄 Falling back to realistic forecast data');
       return this.getRealisticForecast(coords);
     }
+  }
+
+  private groupForecastByDay(forecastList: OpenWeatherForecastResponse['list']): WeatherData['forecast'] {
+    const dailyData: { [key: string]: any } = {};
+    
+    forecastList.forEach(item => {
+      const date = new Date(item.dt * 1000);
+      const dateKey = date.toDateString();
+      
+      if (!dailyData[dateKey]) {
+        dailyData[dateKey] = {
+          date: date,
+          temps: [],
+          conditions: [],
+          icons: []
+        };
+      }
+      
+      dailyData[dateKey].temps.push(item.main.temp);
+      dailyData[dateKey].conditions.push(item.weather[0].description);
+      dailyData[dateKey].icons.push(item.weather[0].icon);
+    });
+    
+    return Object.values(dailyData).map((dayData: any) => {
+      const temps = dayData.temps;
+      const mostCommonCondition = this.getMostCommon(dayData.conditions);
+      const mostCommonIcon = this.getMostCommon(dayData.icons);
+      
+      return {
+        day: this.getDayName(dayData.date),
+        date: dayData.date.getDate().toString(),
+        high: Math.round(Math.max(...temps)),
+        low: Math.round(Math.min(...temps)),
+        condition: this.translateCondition(mostCommonCondition),
+        icon: this.getWeatherIcon(mostCommonIcon),
+      };
+    });
+  }
+
+  private getMostCommon(arr: string[]): string {
+    const counts: { [key: string]: number } = {};
+    arr.forEach(item => {
+      counts[item] = (counts[item] || 0) + 1;
+    });
+    
+    return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+  }
+
+  private getRealisticForecast(coords: LocationCoords): WeatherData['forecast'] {
+    console.log('🎲 Generating realistic forecast for coordinates:', coords);
+    
+    const today = new Date();
+    const forecast = [];
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      
+      const baseTemp = this.getRealisticTemperature(coords);
+      const condition = this.getRealisticCondition(coords, true);
+      
+      const dayForecast = {
+        day: this.getDayName(date),
+        date: date.getDate().toString(),
+        high: Math.round(baseTemp + Math.random() * 5),
+        low: Math.round(baseTemp - 5 - Math.random() * 5),
+        condition: condition.description,
+        icon: condition.icon,
+      };
+      
+      console.log(`📅 Realistic forecast day ${i + 1}:`, dayForecast);
+      forecast.push(dayForecast);
+    }
+    
+    return forecast;
   }
 
   private getRealisticTemperature(coords: LocationCoords): number {
@@ -217,33 +387,32 @@ class WeatherService {
     return conditions[0]; // Fallback to sunny
   }
 
-  private getRealisticForecast(coords: LocationCoords): WeatherData['forecast'] {
-    const today = new Date();
-    const forecast = [];
-    
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      
-      const baseTemp = this.getRealisticTemperature(coords);
-      const condition = this.getRealisticCondition(coords, true);
-      
-      forecast.push({
-        day: this.getDayName(date),
-        date: date.getDate().toString(),
-        high: Math.round(baseTemp + Math.random() * 5),
-        low: Math.round(baseTemp - 5 - Math.random() * 5),
-        condition: condition.description,
-        icon: condition.icon,
-      });
-    }
-    
-    return forecast;
-  }
-
   private getDayName(date: Date): string {
     const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
     return days[date.getDay()];
+  }
+
+  async getLocationName(coords: LocationCoords): Promise<string> {
+    if (!this.isValidApiKey()) {
+      return 'Rabat'; // Fallback
+    }
+
+    try {
+      // Use OpenWeatherMap's reverse geocoding
+      const response = await fetch(
+        `${this.baseUrl}/weather?lat=${coords.latitude}&lon=${coords.longitude}&appid=${this.apiKey}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch location');
+      }
+      
+      const data: OpenWeatherResponse = await response.json();
+      return data.name || 'Localisation inconnue';
+    } catch (error) {
+      console.error('Error getting location name:', error);
+      return 'Rabat'; // Fallback
+    }
   }
 
   async getCompleteWeatherData(userLocation?: string): Promise<WeatherData> {
@@ -261,21 +430,37 @@ class WeatherService {
         locationName = await this.getLocationName(coords);
       }
 
+      console.log('🌍 Fetching weather data for:', { locationName, coords });
+
       const [current, forecast] = await Promise.all([
         this.getCurrentWeather(coords),
         this.getWeatherForecast(coords),
       ]);
 
-      return {
+      const completeWeatherData = {
         location: locationName,
         current,
         forecast,
       };
+
+      console.log('✅ Complete weather data assembled:', {
+        location: completeWeatherData.location,
+        currentTemp: completeWeatherData.current.temperature,
+        forecastDays: completeWeatherData.forecast.length,
+        forecastSummary: completeWeatherData.forecast.map(day => ({
+          day: day.day,
+          high: day.high,
+          low: day.low,
+          condition: day.condition
+        }))
+      });
+
+      return completeWeatherData;
     } catch (error) {
-      console.error('Error getting complete weather data:', error);
+      console.error('❌ Error getting complete weather data:', error);
       
       // Return fallback data for Morocco
-      return {
+      const fallbackData = {
         location: 'Rabat',
         current: {
           temperature: 25,
@@ -284,6 +469,9 @@ class WeatherService {
         },
         forecast: this.getRealisticForecast({ latitude: 34.0209, longitude: -6.8416 }),
       };
+
+      console.log('🔄 Using fallback weather data:', fallbackData);
+      return fallbackData;
     }
   }
 }

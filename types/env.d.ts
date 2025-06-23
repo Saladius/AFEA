@@ -7,6 +7,7 @@ declare global {
       EXPO_PUBLIC_CLOUD_FUNCTION_SUGGEST_OUTFIT: string;
       EXPO_PUBLIC_GOOGLE_VISION_API_KEY?: string;
       EXPO_PUBLIC_OPENAI_API_KEY?: string;
+      EXPO_PUBLIC_OPENWEATHER_API_KEY?: string;
     }
   }
 }
