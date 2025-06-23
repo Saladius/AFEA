@@ -41,7 +41,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               style={styles.centerTab}
             >
               <View style={styles.centerTabButton}>
-                <Plus size={28} color="#FFFFFF" />
+                <Plus size={20} color="#FFFFFF" />
               </View>
             </TouchableOpacity>
           );
@@ -58,7 +58,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               isFocused && styles.tabContentActive
             ]}>
               <IconComponent 
-                size={24} 
+                size={20} 
                 color={isFocused ? '#EE7518' : '#9CA3AF'} 
               />
             </View>
@@ -110,22 +110,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E2E1',
-    paddingBottom: 20,
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    height: 80,
+    paddingBottom: 34,
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    height: 90,
+    alignItems: 'center',
+    justifyContent: 'space-around',
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 8,
   },
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    minWidth: 44,
+    minHeight: 44,
   },
   tabContentActive: {
     backgroundColor: '#E5E2E1',
@@ -137,9 +142,9 @@ const styles = StyleSheet.create({
   },
   centerTabButton: {
     backgroundColor: '#EE7518',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -147,8 +152,8 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });
