@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Shirt, Plus, Calendar, Heart } from 'lucide-react-native';
+import { Chrome as Home, Shirt, Plus, Calendar, Heart } from 'lucide-react-native';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
