@@ -198,15 +198,12 @@ export default function HomeScreen() {
         <View style={styles.suggestionsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Suggestions</Text>
-            <TouchableOpacity>
-              <Settings size={20} color="#8E8E93" />
+            <TouchableOpacity style={styles.reloadButton}>
+              <RefreshCw size={16} color="#8E8E93" />
             </TouchableOpacity>
           </View>
           <View style={styles.suggestionSubheader}>
             <Text style={styles.suggestionTitle}>Just Right For Today's Weather</Text>
-            <TouchableOpacity style={styles.reloadButton}>
-              <RefreshCw size={16} color="#8E8E93" />
-            </TouchableOpacity>
           </View>
           
           <View style={styles.suggestionsGrid}>
