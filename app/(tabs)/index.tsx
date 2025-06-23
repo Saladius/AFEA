@@ -95,11 +95,11 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Image 
-              source={require('../../public/afea-logo-4.png')} 
+              source={require('../../public/afea-logo-1.png')} 
               style={styles.logo}
               resizeMode="cover"
             />
-            <Text style={styles.logoText}>Afea</Text>
+            <Text style={styles.logoText}>AFEA</Text>
           </View>
           <View style={styles.headerActions}>
             <Text style={styles.headerTitle}>Home</Text>
