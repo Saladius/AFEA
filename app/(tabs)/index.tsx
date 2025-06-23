@@ -257,13 +257,6 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* Floating Add Button */}
-      <TouchableOpacity 
-        style={styles.floatingButton}
-        onPress={() => router.push('/(tabs)/wardrobe')}
-      >
-        <Plus size={24} color="#FFFFFF" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -491,7 +484,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingVertical: 20,
     paddingHorizontal: 24,
-    marginBottom: 100, // Space for floating button
+    marginBottom: 20,
   },
   planHeader: {
     flexDirection: 'row',
@@ -549,21 +542,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3E2',
   },
 
-  // Floating Button
-  floatingButton: {
-    position: 'absolute',
-    bottom: 100,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#EE7518',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#EE7518',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
 });
