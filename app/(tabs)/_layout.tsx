@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Shirt as ShirtIcon, Sparkles, User, Plus } from 'lucide-react-native';
+import { Home, Shirt as ShirtIcon, Plus, Calendar, Heart } from 'lucide-react-native';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -9,8 +9,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const icons = {
     index: Home,
     wardrobe: ShirtIcon,
-    outfit: Sparkles,
-    profile: User,
+    plus: Plus,
+    calendar: Calendar,
+    favorites: Heart,
   };
 
   return (
@@ -32,8 +33,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           }
         };
 
-        // Style spécial pour l'onglet du milieu (wardrobe)
-        if (route.name === 'wardrobe') {
+        // Style spécial pour le bouton central (plus)
+        if (route.name === 'plus') {
           return (
             <TouchableOpacity
               key={route.key}
@@ -41,7 +42,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               style={styles.centerTab}
             >
               <View style={styles.centerTabButton}>
-                <Plus size={20} color="#FFFFFF" />
+                <Plus size={30} color="#FFFFFF" />
               </View>
             </TouchableOpacity>
           );
@@ -89,15 +90,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="outfit"
+        name="plus"
         options={{
-          title: 'Tenues',
+          title: 'Add',
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="calendar"
         options={{
-          title: 'Profil',
+          title: 'Calendar',
+        }}
+      />
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: 'Favorites',
         }}
       />
     </Tabs>
@@ -110,10 +117,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E2E1',
-    paddingBottom: 34,
+    paddingBottom: 20,
     paddingTop: 12,
     paddingHorizontal: 16,
-    height: 90,
+    height: 70,
     alignItems: 'center',
     justifyContent: 'space-around',
   },
@@ -141,10 +148,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   centerTabButton: {
-    backgroundColor: '#EE7518',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    backgroundColor: '#FF8C42',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
