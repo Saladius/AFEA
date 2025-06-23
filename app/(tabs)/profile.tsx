@@ -22,25 +22,44 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    Alert.alert(
-      'Se déconnecter',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Se déconnecter',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-              // The redirect will be handled automatically by the auth state change in _layout.tsx
-            } catch (err) {
-              Alert.alert('Erreur', 'Une erreur est survenue lors de la déconnexion.');
-            }
+    try {
+      // Show confirmation alert
+      Alert.alert(
+        'Se déconnecter',
+        'Êtes-vous sûr de vouloir vous déconnecter ?',
+        [
+          { 
+            text: 'Annuler', 
+            style: 'cancel',
+            onPress: () => console.log('Logout cancelled')
           },
-        },
-      ]
-    );
+          {
+            text: 'Se déconnecter',
+            style: 'destructive',
+            onPress: async () => {
+              console.log('User confirmed logout');
+              try {
+                await signOut();
+                console.log('Logout successful');
+                // The redirect will be handled automatically by the auth state change in _layout.tsx
+              } catch (err) {
+                console.error('Logout error:', err);
+                Alert.alert('Erreur', 'Une erreur est survenue lors de la déconnexion.');
+              }
+            },
+          },
+        ],
+        { cancelable: false } // Prevent dismissing by tapping outside
+      );
+    } catch (error) {
+      console.error('Error showing alert:', error);
+      // Fallback: direct logout without confirmation
+      try {
+        await signOut();
+      } catch (err) {
+        Alert.alert('Erreur', 'Une erreur est survenue lors de la déconnexion.');
+      }
+    }
   };
 
   const stats = [
