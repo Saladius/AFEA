@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Shirt as ShirtIcon, Plus, Calendar, Heart } from 'lucide-react-native';
+import { Home, Shirt, Plus, Calendar, Heart } from 'lucide-react-native';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -8,7 +8,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   
   const icons = {
     index: Home,
-    wardrobe: ShirtIcon,
+    wardrobe: Shirt,
     plus: Plus,
     calendar: Calendar,
     favorites: Heart,
@@ -20,6 +20,10 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         const { options } = descriptors[route.key];
         const isFocused = state.index === index;
         const IconComponent = icons[route.name as keyof typeof icons];
+
+        if (!IconComponent) {
+          return null;
+        }
 
         const onPress = () => {
           const event = navigation.emit({
