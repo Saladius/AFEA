@@ -292,8 +292,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logo: {
-    width: 32,
-    height: 32,
+    width: 50,
+    height: 50,
     borderRadius: 8,
   },
   logoText: {
