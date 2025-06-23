@@ -11,26 +11,37 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
 import { useClothes } from '@/hooks/useClothes';
-import { supabase } from '@/lib/supabase';
+import { useRouter } from 'expo-router';
 import { User, Settings, LogOut, Shirt, TrendingUp, Calendar, ChevronRight, Crown, Award, Target, Bell, CircleHelp as HelpCircle, Shield } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { clothes } = useClothes();
+  const router = useRouter();
 
   const handleSignOut = async () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      'Se déconnecter',
+      'Êtes-vous sûr de vouloir vous déconnecter ?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Annuler', style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: 'Se déconnecter',
           style: 'destructive',
           onPress: async () => {
-            await supabase.auth.signOut();
+            try {
+              const { error } = await signOut();
+              if (error) {
+                Alert.alert('Erreur', 'Impossible de se déconnecter. Veuillez réessayer.');
+              } else {
+                // Redirect to landing page after successful logout
+                router.replace('/landing');
+              }
+            } catch (err) {
+              Alert.alert('Erreur', 'Une erreur est survenue lors de la déconnexion.');
+            }
           },
         },
       ]
