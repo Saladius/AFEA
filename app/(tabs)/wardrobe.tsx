@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, MoreHorizontal, Plus, X } from 'lucide-react-native';
+import { Search, Filter, MoveHorizontal as MoreHorizontal, Plus, X } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 64) / 2; // 24px padding on each side + 16px gap
