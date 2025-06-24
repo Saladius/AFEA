@@ -5,32 +5,62 @@ class StorageService {
 
   async uploadImage(uri: string, fileName: string): Promise<string> {
     try {
-      // Convert URI to blob for upload
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      console.log('🔄 Starting image upload:', { uri, fileName });
       
-      // Create array buffer from blob
-      const arrayBuffer = await blob.arrayBuffer();
+      // For web platform, handle differently
+      if (typeof window !== 'undefined') {
+        // Web platform - convert URI to blob
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        
+        console.log('📦 Blob created:', { size: blob.size, type: blob.type });
+        
+        const { data, error } = await supabase.storage
+          .from(this.bucketName)
+          .upload(fileName, blob, {
+            contentType: blob.type || 'image/jpeg',
+            upsert: true
+          });
 
-      const { data, error } = await supabase.storage
-        .from(this.bucketName)
-        .upload(fileName, arrayBuffer, {
-          contentType: 'image/jpeg',
-          upsert: true
-        });
+        if (error) {
+          console.error('❌ Upload error:', error);
+          throw error;
+        }
 
-      if (error) {
-        throw error;
+        console.log('✅ Upload successful:', data);
+
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from(this.bucketName)
+          .getPublicUrl(data.path);
+
+        console.log('🔗 Public URL generated:', publicUrlData.publicUrl);
+        return publicUrlData.publicUrl;
+      } else {
+        // Mobile platform - handle as before
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+
+        const { data, error } = await supabase.storage
+          .from(this.bucketName)
+          .upload(fileName, arrayBuffer, {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+        if (error) {
+          throw error;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from(this.bucketName)
+          .getPublicUrl(data.path);
+
+        return publicUrlData.publicUrl;
       }
-
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from(this.bucketName)
-        .getPublicUrl(data.path);
-
-      return publicUrlData.publicUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('❌ Error uploading image:', error);
       throw error;
     }
   }

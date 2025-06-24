@@ -10,33 +10,44 @@ export function useClothes() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchClothes = async () => {
-    if (!user) return;
+    if (!user) {
+      setClothes([]);
+      return;
+    }
 
     setLoading(true);
     setError(null);
     try {
+      console.log('🔄 Fetching clothes for user:', user.id);
       const data = await clothesService.getClothes(user.id);
+      console.log('✅ Clothes fetched:', data.length, 'items');
       setClothes(data);
     } catch (err) {
+      console.error('❌ Error fetching clothes:', err);
       setError('Failed to fetch clothes');
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   const addClothingItem = async (item: Omit<ClothingItem, 'id' | 'created_at' | 'updated_at'>) => {
-    if (!user) return;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
 
     setLoading(true);
     setError(null);
     try {
+      console.log('🔄 Adding clothing item:', item);
       const newItem = await clothesService.addClothingItem(item);
+      console.log('✅ Clothing item added:', newItem);
+      
+      // Update local state immediately
       setClothes(prev => [newItem, ...prev]);
       return newItem;
     } catch (err) {
+      console.error('❌ Error adding clothing item:', err);
       setError('Failed to add clothing item');
-      console.error(err);
       throw err;
     } finally {
       setLoading(false);
