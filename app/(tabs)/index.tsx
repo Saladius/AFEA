@@ -251,7 +251,7 @@ export default function HomeScreen() {
               style={styles.addPlanCard}
               onPress={() => router.push('/(tabs)/outfit')}
             >
-              <Plus size={32} color="#EE7518" />
+              <Plus size={28} color="#EE7518" />
             </TouchableOpacity>
           </View>
         </View>
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 
-  // Plan Section - Fixed for all cards visible
+  // Plan Section - Fixed for all cards visible with improved readability
   planSection: {
     backgroundColor: '#FFFFFF',
     marginTop: 8,
@@ -500,40 +500,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   planCard: {
-    width: 100,
-    height: 100,
+    width: 110,
+    height: 110,
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
     justifyContent: 'space-between',
   },
   planIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
   planTitle: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 2,
+    marginBottom: 1,
+    lineHeight: 13,
   },
   planTime: {
-    fontSize: 8,
+    fontSize: 9,
     color: '#8E8E93',
-    marginBottom: 2,
+    marginBottom: 1,
+    lineHeight: 11,
   },
   planType: {
-    fontSize: 8,
+    fontSize: 9,
     color: '#8E8E93',
+    lineHeight: 11,
   },
   addPlanCard: {
-    width: 100,
-    height: 100,
+    width: 110,
+    height: 110,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#EE7518',
