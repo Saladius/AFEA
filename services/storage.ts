@@ -7,22 +7,8 @@ class StorageService {
     try {
       console.log('🔄 Starting image upload:', { uri, fileName });
       
-      // Check if bucket exists first
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      
-      if (bucketsError) {
-        console.error('❌ Error listing buckets:', bucketsError);
-        throw new Error(`Erreur lors de la vérification des buckets: ${bucketsError.message}`);
-      }
-
-      const bucketExists = buckets?.some(bucket => bucket.name === this.bucketName);
-      
-      if (!bucketExists) {
-        console.error('❌ Bucket not found:', this.bucketName);
-        throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas. Veuillez créer ce bucket dans votre tableau de bord Supabase (Storage > Nouveau bucket > "${this.bucketName}").`);
-      }
-
-      console.log('✅ Bucket exists, proceeding with upload');
+      // Ensure bucket exists before uploading
+      await this.ensureBucketExists();
       
       // For web platform, handle differently
       if (typeof window !== 'undefined') {
@@ -41,9 +27,6 @@ class StorageService {
 
         if (error) {
           console.error('❌ Upload error:', error);
-          if (error.message.includes('Bucket not found')) {
-            throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas. Veuillez créer ce bucket dans votre tableau de bord Supabase.`);
-          }
           throw new Error(`Erreur lors du téléchargement: ${error.message}`);
         }
 
@@ -70,9 +53,7 @@ class StorageService {
           });
 
         if (error) {
-          if (error.message.includes('Bucket not found')) {
-            throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas. Veuillez créer ce bucket dans votre tableau de bord Supabase.`);
-          }
+          console.error('❌ Upload error:', error);
           throw new Error(`Erreur lors du téléchargement: ${error.message}`);
         }
 
@@ -112,13 +93,14 @@ class StorageService {
     return `${userId}/${timestamp}-${random}.jpg`;
   }
 
-  // Helper method to create bucket if it doesn't exist (for development)
+  // Helper method to create bucket if it doesn't exist
   async ensureBucketExists(): Promise<void> {
     try {
       const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
       
       if (bucketsError) {
-        throw bucketsError;
+        console.error('❌ Error listing buckets:', bucketsError);
+        throw new Error(`Erreur lors de la vérification des buckets: ${bucketsError.message}`);
       }
 
       const bucketExists = buckets?.some(bucket => bucket.name === this.bucketName);
@@ -133,10 +115,13 @@ class StorageService {
 
         if (createError) {
           console.error('❌ Error creating bucket:', createError);
-          throw createError;
+          // If bucket creation fails, provide helpful error message
+          throw new Error(`Impossible de créer le bucket "${this.bucketName}". Veuillez créer ce bucket manuellement dans votre tableau de bord Supabase (Storage > Nouveau bucket > "${this.bucketName}") et le configurer comme public.`);
         }
 
         console.log('✅ Bucket created successfully');
+      } else {
+        console.log('✅ Bucket already exists');
       }
     } catch (error) {
       console.error('❌ Error ensuring bucket exists:', error);
