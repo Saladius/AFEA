@@ -385,7 +385,7 @@ export default function CalendarScreen() {
                 })()}
               </View>
 
-              {/* Icon Options */}
+              {/* Icon Options - Fixed Layout */}
               <View style={styles.iconGrid}>
                 {eventIcons.map((iconData) => {
                   const IconComponent = iconData.icon;
@@ -770,7 +770,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   
-  // Icon Selection
+  // Icon Selection - Fixed Layout
   selectedIconContainer: {
     alignItems: 'center',
     marginBottom: 20,
@@ -785,10 +785,11 @@ const styles = StyleSheet.create({
   iconGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
+    gap: 16,
   },
   iconOption: {
-    width: 60,
+    width: (width - 80) / 3, // 3 icons per row with proper spacing
     height: 60,
     borderRadius: 15,
     alignItems: 'center',
