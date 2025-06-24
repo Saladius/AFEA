@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,11 +29,13 @@ import {
   GraduationCap,
   Plane,
   Shirt,
-  User
+  User,
+  Filter,
+  X
 } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
-import { EventType } from '@/types/database';
+import { EventType, EventStatus } from '@/types/database';
 
 const { width } = Dimensions.get('window');
 
@@ -53,6 +55,33 @@ const eventTypes = [
   { id: 'party', label: 'Soirée', icon: Music },
 ];
 
+const timeFilters = [
+  { id: 'week', label: 'Cette semaine' },
+  { id: 'month', label: 'Ce mois' },
+  { id: 'year', label: 'Cette année' },
+];
+
+const statusFilters = [
+  { id: 'all', label: 'Tous les statuts' },
+  { id: 'ready', label: 'Tenue prête' },
+  { id: 'preparing', label: 'À préparer' },
+  { id: 'generate', label: 'À générer' },
+];
+
+const typeFilters = [
+  { id: 'all', label: 'Tous les types' },
+  { id: 'casual', label: 'Décontracté' },
+  { id: 'formal', label: 'Formel' },
+  { id: 'sport', label: 'Sport' },
+  { id: 'party', label: 'Soirée' },
+];
+
+interface Filters {
+  timeRange: 'week' | 'month' | 'year';
+  status: 'all' | EventStatus;
+  type: 'all' | EventType;
+}
+
 export default function CalendarScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -66,9 +95,17 @@ export default function CalendarScreen() {
     fetchEvents
   } = useEvents();
   
-  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
+  
+  // Filters state
+  const [filters, setFilters] = useState<Filters>({
+    timeRange: 'week',
+    status: 'all',
+    type: 'all'
+  });
   
   // Form state
   const [selectedIcon, setSelectedIcon] = useState('utensils');
@@ -84,30 +121,78 @@ export default function CalendarScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  const currentMonth = selectedDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-  const currentYear = selectedDate.getFullYear();
-  const currentMonthIndex = selectedDate.getMonth();
-
-  // Get days in month
-  const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentYear, currentMonthIndex, 1).getDay();
-  const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Adjust for Monday start
-
-  const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    const newDate = new Date(selectedDate);
-    if (direction === 'prev') {
-      newDate.setMonth(currentMonthIndex - 1);
-    } else {
-      newDate.setMonth(currentMonthIndex + 1);
+  // Get current week dates
+  const getCurrentWeekDates = () => {
+    const today = new Date();
+    const currentDay = today.getDay();
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Adjust for Monday start
+    
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      weekDates.push(date);
     }
-    setSelectedDate(newDate);
+    
+    return weekDates;
   };
 
-  const getEventsForDay = (day: number) => {
-    const dateStr = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return getEventsForDate(dateStr);
+  const weekDates = getCurrentWeekDates();
+
+  // Filter events based on current filters
+  const filteredEvents = useMemo(() => {
+    let filtered = [...events];
+    
+    // Time range filter
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    
+    if (filters.timeRange === 'week') {
+      const weekStart = weekDates[0].toISOString().split('T')[0];
+      const weekEnd = weekDates[6].toISOString().split('T')[0];
+      filtered = filtered.filter(event => 
+        event.event_date >= weekStart && event.event_date <= weekEnd
+      );
+    } else if (filters.timeRange === 'month') {
+      const monthStart = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
+      const monthEnd = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0];
+      filtered = filtered.filter(event => 
+        event.event_date >= monthStart && event.event_date <= monthEnd
+      );
+    } else if (filters.timeRange === 'year') {
+      const yearStart = `${currentYear}-01-01`;
+      const yearEnd = `${currentYear}-12-31`;
+      filtered = filtered.filter(event => 
+        event.event_date >= yearStart && event.event_date <= yearEnd
+      );
+    }
+    
+    // Status filter
+    if (filters.status !== 'all') {
+      filtered = filtered.filter(event => event.status === filters.status);
+    }
+    
+    // Type filter
+    if (filters.type !== 'all') {
+      filtered = filtered.filter(event => event.event_type === filters.type);
+    }
+    
+    return filtered.sort((a, b) => {
+      const dateCompare = new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+      if (dateCompare === 0) {
+        return a.event_time.localeCompare(b.event_time);
+      }
+      return dateCompare;
+    });
+  }, [events, filters, weekDates]);
+
+  const getEventsForDay = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return filteredEvents.filter(event => event.event_date === dateStr);
   };
 
   const getStatusColor = (status: string) => {
@@ -203,78 +288,119 @@ export default function CalendarScreen() {
     }
   };
 
-  const renderCalendarDays = () => {
-    const days = [];
+  const applyFilters = () => {
+    setShowFiltersModal(false);
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      timeRange: 'week',
+      status: 'all',
+      type: 'all'
+    });
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.status !== 'all') count++;
+    if (filters.type !== 'all') count++;
+    return count;
+  };
+
+  const renderWeekView = () => {
+    const today = new Date().toDateString();
     
-    // Empty cells for days before the first day of the month
-    for (let i = 0; i < adjustedFirstDay; i++) {
-      const prevMonthDay = new Date(currentYear, currentMonthIndex, 0).getDate() - adjustedFirstDay + i + 1;
-      days.push(
-        <View key={`prev-${i}`} style={styles.dayCell}>
-          <Text style={styles.dayTextInactive}>{prevMonthDay}</Text>
-        </View>
-      );
-    }
-
-    // Days of the current month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dayEvents = getEventsForDay(day);
-      const today = new Date();
-      const isToday = day === today.getDate() && 
-                     currentMonthIndex === today.getMonth() && 
-                     currentYear === today.getFullYear();
-      
-      days.push(
-        <TouchableOpacity key={day} style={styles.dayCell}>
-          <View style={[styles.dayContent, isToday && styles.dayContentToday]}>
-            <Text style={[styles.dayText, isToday && styles.dayTextToday]}>
-              {day}
-            </Text>
-          </View>
-          {dayEvents.length > 0 && (
-            <View style={styles.eventDots}>
-              {dayEvents.slice(0, 3).map((_, index) => (
-                <View key={index} style={styles.eventDot} />
-              ))}
-            </View>
-          )}
-        </TouchableOpacity>
-      );
-    }
-
-    // Fill remaining cells
-    const totalCells = Math.ceil((adjustedFirstDay + daysInMonth) / 7) * 7;
-    const remainingCells = totalCells - (adjustedFirstDay + daysInMonth);
-    
-    for (let i = 1; i <= remainingCells; i++) {
-      days.push(
-        <View key={`next-${i}`} style={styles.dayCell}>
-          <Text style={styles.dayTextInactive}>{i}</Text>
-        </View>
-      );
-    }
-
-    return days;
+    return (
+      <View style={styles.weekContainer}>
+        <Text style={styles.weekTitle}>
+          {weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} - {' '}
+          {weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </Text>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekScroll}>
+          {weekDates.map((date, index) => {
+            const dayEvents = getEventsForDay(date);
+            const isToday = date.toDateString() === today;
+            const dayName = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][index];
+            
+            return (
+              <View key={index} style={styles.dayColumn}>
+                <View style={[styles.dayHeader, isToday && styles.dayHeaderToday]}>
+                  <Text style={[styles.dayName, isToday && styles.dayNameToday]}>{dayName}</Text>
+                  <Text style={[styles.dayNumber, isToday && styles.dayNumberToday]}>
+                    {date.getDate()}
+                  </Text>
+                </View>
+                
+                <ScrollView style={styles.dayEvents} showsVerticalScrollIndicator={false}>
+                  {dayEvents.map((event) => {
+                    const iconData = eventIcons.find(icon => icon.id === event.icon);
+                    const IconComponent = iconData?.icon || Utensils;
+                    
+                    return (
+                      <TouchableOpacity key={event.id} style={styles.weekEventCard}>
+                        <View style={[styles.weekEventIcon, { backgroundColor: iconData?.bg }]}>
+                          <IconComponent size={16} color={iconData?.color} />
+                        </View>
+                        <View style={styles.weekEventDetails}>
+                          <Text style={styles.weekEventTitle} numberOfLines={2}>
+                            {event.title}
+                          </Text>
+                          <Text style={styles.weekEventTime}>{event.event_time}</Text>
+                          <View style={[
+                            styles.weekEventStatus,
+                            { backgroundColor: getStatusColor(event.status) }
+                          ]}>
+                            <Text style={styles.weekEventStatusText}>
+                              {getStatusText(event.status)}
+                            </Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  
+                  {dayEvents.length === 0 && (
+                    <View style={styles.emptyDay}>
+                      <Text style={styles.emptyDayText}>Aucun événement</Text>
+                    </View>
+                  )}
+                </ScrollView>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
   };
 
   const renderEventsList = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayEvents = getEventsForDate(today);
-    
     return (
       <View style={styles.eventsListContainer}>
-        <Text style={styles.eventsDateTitle}>
-          {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-        </Text>
+        <View style={styles.eventsHeader}>
+          <Text style={styles.eventsTitle}>
+            {filters.timeRange === 'week' && 'Événements de la semaine'}
+            {filters.timeRange === 'month' && 'Événements du mois'}
+            {filters.timeRange === 'year' && 'Événements de l\'année'}
+          </Text>
+          <Text style={styles.eventsCount}>
+            {filteredEvents.length} {filteredEvents.length <= 1 ? 'événement' : 'événements'}
+          </Text>
+        </View>
         
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#EE7518" />
             <Text style={styles.loadingText}>Chargement des événements...</Text>
           </View>
-        ) : todayEvents.length === 0 ? (
+        ) : filteredEvents.length === 0 ? (
           <View style={styles.emptyEventsContainer}>
-            <Text style={styles.emptyEventsText}>Aucun événement aujourd'hui</Text>
+            <Text style={styles.emptyEventsText}>
+              {events.length === 0 
+                ? 'Aucun événement créé' 
+                : 'Aucun événement ne correspond aux filtres'
+              }
+            </Text>
             <TouchableOpacity
               style={styles.addEventButton}
               onPress={() => setShowCreateModal(true)}
@@ -284,9 +410,10 @@ export default function CalendarScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          todayEvents.map((event) => {
+          filteredEvents.map((event) => {
             const iconData = eventIcons.find(icon => icon.id === event.icon);
             const IconComponent = iconData?.icon || Utensils;
+            const eventDate = new Date(event.event_date);
             
             return (
               <View key={event.id} style={styles.eventCard}>
@@ -296,15 +423,16 @@ export default function CalendarScreen() {
                 
                 <View style={styles.eventDetails}>
                   <Text style={styles.eventTitle}>{event.title}</Text>
-                  <Text style={styles.eventTime}>
-                    {event.event_time} - {event.event_time.split(':').map((part, index) => {
-                      if (index === 0) {
-                        const hour = parseInt(part);
-                        return String(hour + 1).padStart(2, '0');
-                      }
-                      return part;
-                    }).join(':')}
+                  <Text style={styles.eventDateTime}>
+                    {eventDate.toLocaleDateString('fr-FR', { 
+                      weekday: 'long', 
+                      day: 'numeric', 
+                      month: 'long' 
+                    })} • {event.event_time}
                   </Text>
+                  {event.location && (
+                    <Text style={styles.eventLocation}>📍 {event.location}</Text>
+                  )}
                 </View>
                 
                 <View style={styles.eventActions}>
@@ -326,7 +454,6 @@ export default function CalendarScreen() {
                       onPress={() => handleGenerateOutfit(event.id)}
                     >
                       <Shirt size={16} color="#EE7518" />
-                      <Text style={styles.generateButtonText}>Générer tenue</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -570,12 +697,25 @@ export default function CalendarScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Événements</Text>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => setShowCreateModal(true)}
-        >
-          <Plus size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={[styles.filterButton, getActiveFiltersCount() > 0 && styles.filterButtonActive]}
+            onPress={() => setShowFiltersModal(true)}
+          >
+            <Filter size={20} color={getActiveFiltersCount() > 0 ? "#FFFFFF" : "#1C1C1E"} />
+            {getActiveFiltersCount() > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{getActiveFiltersCount()}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={() => setShowCreateModal(true)}
+          >
+            <Plus size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* View Mode Toggle */}
@@ -586,7 +726,7 @@ export default function CalendarScreen() {
         >
           <CalendarIcon size={20} color={viewMode === 'calendar' ? '#1C1C1E' : '#8E8E93'} />
           <Text style={[styles.viewModeText, viewMode === 'calendar' && styles.viewModeTextActive]}>
-            Calendrier
+            Semaine
           </Text>
         </TouchableOpacity>
         
@@ -602,41 +742,116 @@ export default function CalendarScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {viewMode === 'calendar' && (
-          <>
-            {/* Calendar Navigation */}
-            <View style={styles.calendarHeader}>
-              <TouchableOpacity onPress={() => navigateMonth('prev')}>
-                <ChevronLeft size={24} color="#1C1C1E" />
-              </TouchableOpacity>
-              
-              <Text style={styles.monthTitle}>{currentMonth}</Text>
-              
-              <TouchableOpacity onPress={() => navigateMonth('next')}>
-                <ChevronRight size={24} color="#1C1C1E" />
-              </TouchableOpacity>
-            </View>
+        {viewMode === 'calendar' ? renderWeekView() : renderEventsList()}
+      </ScrollView>
 
-            {/* Calendar Grid */}
-            <View style={styles.calendar}>
-              {/* Week days header */}
-              <View style={styles.weekDaysHeader}>
-                {weekDays.map((day) => (
-                  <Text key={day} style={styles.weekDayText}>{day}</Text>
+      {/* Filters Modal */}
+      <Modal
+        visible={showFiltersModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Filtres</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowFiltersModal(false)}
+            >
+              <X size={24} color="#1C1C1E" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            {/* Time Range Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Période</Text>
+              <View style={styles.filterOptions}>
+                {timeFilters.map((filter) => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.filterOption,
+                      filters.timeRange === filter.id && styles.filterOptionActive
+                    ]}
+                    onPress={() => setFilters(prev => ({ ...prev, timeRange: filter.id as any }))}
+                  >
+                    <Text style={[
+                      styles.filterOptionText,
+                      filters.timeRange === filter.id && styles.filterOptionTextActive
+                    ]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </View>
+            </View>
 
-              {/* Calendar days */}
-              <View style={styles.calendarGrid}>
-                {renderCalendarDays()}
+            {/* Status Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Statut</Text>
+              <View style={styles.filterOptions}>
+                {statusFilters.map((filter) => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.filterOption,
+                      filters.status === filter.id && styles.filterOptionActive
+                    ]}
+                    onPress={() => setFilters(prev => ({ ...prev, status: filter.id as any }))}
+                  >
+                    <Text style={[
+                      styles.filterOptionText,
+                      filters.status === filter.id && styles.filterOptionTextActive
+                    ]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
-          </>
-        )}
 
-        {/* Events List */}
-        {renderEventsList()}
-      </ScrollView>
+            {/* Type Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Type d'événement</Text>
+              <View style={styles.filterOptions}>
+                {typeFilters.map((filter) => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.filterOption,
+                      filters.type === filter.id && styles.filterOptionActive
+                    ]}
+                    onPress={() => setFilters(prev => ({ ...prev, type: filter.id as any }))}
+                  >
+                    <Text style={[
+                      styles.filterOptionText,
+                      filters.type === filter.id && styles.filterOptionTextActive
+                    ]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={resetFilters}
+            >
+              <Text style={styles.resetButtonText}>Réinitialiser</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={applyFilters}
+            >
+              <Text style={styles.applyButtonText}>Appliquer</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
 
       {/* Create Event Modal */}
       <Modal
@@ -865,6 +1080,39 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1C1C1E',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  filterButtonActive: {
+    backgroundColor: '#EE7518',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
   addButton: {
     width: 40,
     height: 40,
@@ -905,83 +1153,107 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // Calendar Styles
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 16,
-  },
-  monthTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1C1C1E',
-  },
-  calendar: {
+  // Week View Styles
+  weekContainer: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 24,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
   },
-  weekDaysHeader: {
-    flexDirection: 'row',
+  weekTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
     marginBottom: 16,
-  },
-  weekDayText: {
-    flex: 1,
     textAlign: 'center',
+  },
+  weekScroll: {
+    flexGrow: 0,
+  },
+  dayColumn: {
+    width: 140,
+    marginRight: 16,
+  },
+  dayHeader: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: '#F8F9FA',
+  },
+  dayHeaderToday: {
+    backgroundColor: '#EE7518',
+  },
+  dayName: {
     fontSize: 12,
     fontWeight: '500',
     color: '#8E8E93',
+    marginBottom: 4,
   },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayCell: {
-    width: `${100/7}%`,
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  dayContent: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayContentToday: {
-    backgroundColor: '#EE7518',
-  },
-  dayText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1C1C1E',
-  },
-  dayTextToday: {
+  dayNameToday: {
     color: '#FFFFFF',
   },
-  dayTextInactive: {
-    fontSize: 14,
-    color: '#C7C7CC',
+  dayNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1C1C1E',
   },
-  eventDots: {
-    position: 'absolute',
-    bottom: 4,
+  dayNumberToday: {
+    color: '#FFFFFF',
+  },
+  dayEvents: {
+    maxHeight: 300,
+  },
+  weekEventCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
     flexDirection: 'row',
-    gap: 2,
+    alignItems: 'flex-start',
+    gap: 8,
   },
-  eventDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#EE7518',
+  weekEventIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekEventDetails: {
+    flex: 1,
+  },
+  weekEventTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 2,
+  },
+  weekEventTime: {
+    fontSize: 10,
+    color: '#8E8E93',
+    marginBottom: 4,
+  },
+  weekEventStatus: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  weekEventStatusText: {
+    fontSize: 8,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  emptyDay: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyDayText: {
+    fontSize: 12,
+    color: '#C7C7CC',
+    fontStyle: 'italic',
   },
 
   // Events List - Updated to match design exactly
@@ -989,11 +1261,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 100,
   },
-  eventsDateTitle: {
+  eventsHeader: {
+    marginBottom: 16,
+  },
+  eventsTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 16,
+    marginBottom: 4,
+  },
+  eventsCount: {
+    fontSize: 14,
+    color: '#8E8E93',
   },
   loadingContainer: {
     alignItems: 'center',
@@ -1012,6 +1291,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8E8E93',
     marginBottom: 16,
+    textAlign: 'center',
   },
   addEventButton: {
     flexDirection: 'row',
@@ -1057,7 +1337,7 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     marginBottom: 4,
   },
-  eventTime: {
+  eventDateTime: {
     fontSize: 14,
     color: '#8E8E93',
     marginBottom: 2,
@@ -1082,16 +1362,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   generateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  generateButtonText: {
-    fontSize: 12,
-    color: '#EE7518',
-    fontWeight: '500',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#FEF3E2',
   },
 
   // Modal Styles
@@ -1115,6 +1388,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  closeButton: {
+    padding: 4,
+  },
   modalTitle: {
     flex: 1,
     fontSize: 18,
@@ -1129,6 +1405,78 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
   },
+  
+  // Filter Modal Styles
+  filterSection: {
+    marginVertical: 20,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 12,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  filterOptionActive: {
+    backgroundColor: '#EE7518',
+    borderColor: '#EE7518',
+  },
+  filterOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#8E8E93',
+  },
+  filterOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E2E1',
+    gap: 12,
+  },
+  resetButton: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  resetButtonText: {
+    color: '#8E8E93',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  applyButton: {
+    flex: 2,
+    backgroundColor: '#EE7518',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Form Styles (Create Event Modal)
   formSection: {
     marginVertical: 20,
   },
@@ -1265,13 +1613,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // Modal Footer
-  modalFooter: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E2E1',
-  },
   createButton: {
     backgroundColor: '#EE7518',
     borderRadius: 16,
