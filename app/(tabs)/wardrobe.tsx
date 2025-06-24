@@ -9,7 +9,7 @@ import {
   Image,
   SafeAreaView,
 } from 'react-native';
-import { Search, MoreVertical } from 'lucide-react-native';
+import { Search, MoveVertical as MoreVertical } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2; // 24px padding on each side
