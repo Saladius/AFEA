@@ -4,7 +4,7 @@ import { eventsService } from '@/services/events';
 import { useAuth } from './useAuth';
 
 export function useEvents() {
-  const { user } = useAuth();
+  const { user, ensureUserExists } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +19,10 @@ export function useEvents() {
     setError(null);
     try {
       console.log('🔄 Fetching events for user:', user.id);
+      
+      // Ensure user exists before fetching events
+      await ensureUserExists(user);
+      
       const data = await eventsService.getEvents(user.id);
       console.log('✅ Events fetched:', data.length, 'events');
       setEvents(data);
@@ -39,6 +43,11 @@ export function useEvents() {
     setError(null);
     try {
       console.log('🔄 Creating event:', eventData);
+      console.log('🔍 User ID:', user.id);
+      
+      // Ensure user exists before creating event
+      await ensureUserExists(user);
+      
       const newEvent = await eventsService.createEvent({
         ...eventData,
         user_id: user.id,
@@ -52,8 +61,21 @@ export function useEvents() {
       return newEvent;
     } catch (err) {
       console.error('❌ Error creating event:', err);
-      setError('Failed to create event');
-      throw err;
+      
+      // Provide more user-friendly error messages
+      let errorMessage = 'Failed to create event';
+      if (err instanceof Error) {
+        if (err.message.includes('Foreign key constraint')) {
+          errorMessage = 'Erreur de compte utilisateur. Veuillez vous reconnecter.';
+        } else if (err.message.includes('does not exist in users table')) {
+          errorMessage = 'Compte utilisateur non trouvé. Veuillez vous reconnecter.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }

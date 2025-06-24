@@ -92,6 +92,29 @@ class EventsService {
     try {
       console.log('🔄 Creating event:', event);
 
+      // Validate that user_id is provided
+      if (!event.user_id) {
+        throw new Error('user_id is required to create an event');
+      }
+
+      // Check if user exists in users table before creating event
+      console.log('🔍 Verifying user exists in users table:', event.user_id);
+      const { data: userExists, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', event.user_id)
+        .single();
+
+      if (userCheckError) {
+        console.error('❌ User verification failed:', userCheckError);
+        if (userCheckError.code === 'PGRST116') {
+          throw new Error(`User with ID ${event.user_id} does not exist in users table. Please ensure the user is properly registered.`);
+        }
+        throw userCheckError;
+      }
+
+      console.log('✅ User verified in users table:', userExists.id);
+
       const { data, error } = await supabase
         .from('events')
         .insert([event])
@@ -100,10 +123,16 @@ class EventsService {
 
       if (error) {
         console.error('❌ Error creating event:', error);
+        
+        // Provide more specific error messages
+        if (error.code === '23503') {
+          throw new Error('Foreign key constraint violation: User does not exist in users table');
+        }
+        
         throw error;
       }
 
-      console.log('✅ Event created:', data);
+      console.log('✅ Event created successfully:', data);
       return data;
     } catch (error) {
       console.error('❌ Error in createEvent:', error);
