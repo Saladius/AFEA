@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Trash2, Edit3, RefreshCw, Heart, Calendar, MapPin, Clock } from 'lucide-react-native';
+import { ArrowLeft, Trash2, CreditCard as Edit3, RefreshCw, Heart, Calendar, MapPin, Clock } from 'lucide-react-native';
 import { useEvents } from '@/hooks/useEvents';
 import { Event, EventStatus } from '@/types/database';
 
