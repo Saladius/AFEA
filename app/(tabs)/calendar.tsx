@@ -9,7 +9,7 @@ import {
   Modal,
   TextInput,
   Alert,
-  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -31,45 +31,11 @@ import {
   Shirt,
   User
 } from 'lucide-react-native';
+import { useAuth } from '@/hooks/useAuth';
+import { useEvents } from '@/hooks/useEvents';
+import { EventType } from '@/types/database';
 
 const { width } = Dimensions.get('window');
-
-interface Event {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location?: string;
-  type: 'casual' | 'formal' | 'sport' | 'party';
-  icon: string;
-  status: 'ready' | 'preparing' | 'generate';
-  description?: string;
-}
-
-const dummyEvents: Event[] = [
-  {
-    id: '1',
-    title: 'Réunion d\'équipe',
-    date: '2023-06-20',
-    time: '10:00 - 11:30',
-    location: 'Bureau',
-    type: 'formal',
-    icon: 'briefcase',
-    status: 'ready',
-    description: 'Réunion hebdomadaire avec l\'équipe'
-  },
-  {
-    id: '2',
-    title: 'Café avec Marc',
-    date: '2023-06-20',
-    time: '15:00 - 16:00',
-    location: 'Café Central',
-    type: 'casual',
-    icon: 'utensils',
-    status: 'preparing',
-    description: 'Rattrapage avec Marc'
-  }
-];
 
 const eventIcons = [
   { id: 'utensils', icon: Utensils, color: '#3B82F6', bg: '#DBEAFE' },
@@ -89,9 +55,18 @@ const eventTypes = [
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { 
+    events, 
+    loading, 
+    createEvent, 
+    updateEventStatus, 
+    getEventsForDate, 
+    getEventsForMonth 
+  } = useEvents();
+  
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [events, setEvents] = useState<Event[]>(dummyEvents);
   const [showCreateModal, setShowCreateModal] = useState(false);
   
   // Form state
@@ -100,8 +75,9 @@ export default function CalendarScreen() {
   const [eventDate, setEventDate] = useState(new Date());
   const [eventTime, setEventTime] = useState(new Date());
   const [eventLocation, setEventLocation] = useState('');
-  const [eventType, setEventType] = useState<'casual' | 'formal' | 'sport' | 'party'>('casual');
+  const [eventType, setEventType] = useState<EventType>('casual');
   const [eventDescription, setEventDescription] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
   
   // Date and Time picker states
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -128,9 +104,9 @@ export default function CalendarScreen() {
     setSelectedDate(newDate);
   };
 
-  const getEventsForDate = (day: number) => {
+  const getEventsForDay = (day: number) => {
     const dateStr = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return events.filter(event => event.date === dateStr);
+    return getEventsForDate(dateStr);
   };
 
   const getStatusColor = (status: string) => {
@@ -177,31 +153,53 @@ export default function CalendarScreen() {
     });
   };
 
-  const handleCreateEvent = () => {
-    if (!eventTitle) {
+  const handleCreateEvent = async () => {
+    if (!user) {
+      Alert.alert('Erreur', 'Vous devez être connecté pour créer un événement');
+      return;
+    }
+
+    if (!eventTitle.trim()) {
       Alert.alert('Erreur', 'Veuillez remplir le nom de l\'événement');
       return;
     }
 
-    const formattedDate = eventDate.toISOString().split('T')[0];
-    const formattedTime = formatTime(eventTime);
+    setIsCreating(true);
+    
+    try {
+      const formattedDate = eventDate.toISOString().split('T')[0];
+      const formattedTime = formatTime(eventTime);
 
-    const newEvent: Event = {
-      id: Date.now().toString(),
-      title: eventTitle,
-      date: formattedDate,
-      time: formattedTime,
-      location: eventLocation,
-      type: eventType,
-      icon: selectedIcon,
-      status: 'generate',
-      description: eventDescription,
-    };
+      await createEvent({
+        title: eventTitle.trim(),
+        description: eventDescription.trim() || null,
+        event_date: formattedDate,
+        event_time: formattedTime,
+        location: eventLocation.trim() || null,
+        event_type: eventType,
+        icon: selectedIcon,
+        status: 'generate',
+      });
 
-    setEvents(prev => [...prev, newEvent]);
-    setShowCreateModal(false);
-    resetForm();
-    Alert.alert('Succès', 'Événement créé avec succès !');
+      setShowCreateModal(false);
+      resetForm();
+      Alert.alert('Succès', 'Événement créé avec succès !');
+    } catch (error) {
+      console.error('Error creating event:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue lors de la création de l\'événement');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleGenerateOutfit = async (eventId: string) => {
+    try {
+      await updateEventStatus(eventId, 'preparing');
+      Alert.alert('Génération en cours', 'La génération de tenue a été lancée !');
+    } catch (error) {
+      console.error('Error updating event status:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue');
+    }
   };
 
   const renderCalendarDays = () => {
@@ -219,8 +217,11 @@ export default function CalendarScreen() {
 
     // Days of the current month
     for (let day = 1; day <= daysInMonth; day++) {
-      const dayEvents = getEventsForDate(day);
-      const isToday = day === 20; // Highlighting day 20 as shown in design
+      const dayEvents = getEventsForDay(day);
+      const today = new Date();
+      const isToday = day === today.getDate() && 
+                     currentMonthIndex === today.getMonth() && 
+                     currentYear === today.getFullYear();
       
       days.push(
         <TouchableOpacity key={day} style={styles.dayCell}>
@@ -256,42 +257,69 @@ export default function CalendarScreen() {
   };
 
   const renderEventsList = () => {
-    const todayEvents = events.filter(event => event.date === '2023-06-20');
+    const today = new Date().toISOString().split('T')[0];
+    const todayEvents = getEventsForDate(today);
     
     return (
       <View style={styles.eventsListContainer}>
-        <Text style={styles.eventsDateTitle}>20 Juin</Text>
+        <Text style={styles.eventsDateTitle}>
+          {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+        </Text>
         
-        {todayEvents.map((event) => {
-          const iconData = eventIcons.find(icon => icon.id === event.icon);
-          const IconComponent = iconData?.icon || Utensils;
-          
-          return (
-            <View key={event.id} style={styles.eventCard}>
-              <View style={[styles.eventIconContainer, { backgroundColor: iconData?.bg }]}>
-                <IconComponent size={20} color={iconData?.color} />
-              </View>
-              
-              <View style={styles.eventDetails}>
-                <Text style={styles.eventTitle}>{event.title}</Text>
-                <Text style={styles.eventTime}>{event.time}</Text>
-              </View>
-              
-              <View style={styles.eventActions}>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(event.status) }]}>
-                  <Text style={styles.statusText}>{getStatusText(event.status)}</Text>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#EE7518" />
+            <Text style={styles.loadingText}>Chargement des événements...</Text>
+          </View>
+        ) : todayEvents.length === 0 ? (
+          <View style={styles.emptyEventsContainer}>
+            <Text style={styles.emptyEventsText}>Aucun événement aujourd'hui</Text>
+            <TouchableOpacity
+              style={styles.addEventButton}
+              onPress={() => setShowCreateModal(true)}
+            >
+              <Plus size={16} color="#EE7518" />
+              <Text style={styles.addEventButtonText}>Ajouter un événement</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          todayEvents.map((event) => {
+            const iconData = eventIcons.find(icon => icon.id === event.icon);
+            const IconComponent = iconData?.icon || Utensils;
+            
+            return (
+              <View key={event.id} style={styles.eventCard}>
+                <View style={[styles.eventIconContainer, { backgroundColor: iconData?.bg }]}>
+                  <IconComponent size={20} color={iconData?.color} />
                 </View>
                 
-                {event.status === 'generate' && (
-                  <TouchableOpacity style={styles.generateButton}>
-                    <Shirt size={16} color="#EE7518" />
-                    <Text style={styles.generateButtonText}>Générer tenue</Text>
-                  </TouchableOpacity>
-                )}
+                <View style={styles.eventDetails}>
+                  <Text style={styles.eventTitle}>{event.title}</Text>
+                  <Text style={styles.eventTime}>{event.event_time}</Text>
+                  {event.location && (
+                    <Text style={styles.eventLocation}>{event.location}</Text>
+                  )}
+                </View>
+                
+                <View style={styles.eventActions}>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(event.status) }]}>
+                    <Text style={styles.statusText}>{getStatusText(event.status)}</Text>
+                  </View>
+                  
+                  {event.status === 'generate' && (
+                    <TouchableOpacity 
+                      style={styles.generateButton}
+                      onPress={() => handleGenerateOutfit(event.id)}
+                    >
+                      <Shirt size={16} color="#EE7518" />
+                      <Text style={styles.generateButtonText}>Générer tenue</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
-            </View>
-          );
-        })}
+            );
+          })
+        )}
       </View>
     );
   };
@@ -507,6 +535,22 @@ export default function CalendarScreen() {
     );
   };
 
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.authContainer}>
+          <Text style={styles.authText}>Vous devez être connecté pour voir vos événements</Text>
+          <TouchableOpacity
+            style={styles.authButton}
+            onPress={() => router.replace('/auth')}
+          >
+            <Text style={styles.authButtonText}>Se connecter</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -707,7 +751,7 @@ export default function CalendarScreen() {
                         styles.eventTypeOption,
                         eventType === type.id && styles.eventTypeOptionSelected
                       ]}
-                      onPress={() => setEventType(type.id as any)}
+                      onPress={() => setEventType(type.id as EventType)}
                     >
                       <IconComponent 
                         size={24} 
@@ -744,10 +788,15 @@ export default function CalendarScreen() {
           {/* Create Button */}
           <View style={styles.modalFooter}>
             <TouchableOpacity
-              style={styles.createButton}
+              style={[styles.createButton, isCreating && styles.createButtonDisabled]}
               onPress={handleCreateEvent}
+              disabled={isCreating}
             >
-              <Text style={styles.createButtonText}>Créer l'événement</Text>
+              {isCreating ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.createButtonText}>Créer l'événement</Text>
+              )}
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -764,6 +813,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  authContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  authText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  authButton: {
+    backgroundColor: '#EE7518',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  authButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
@@ -908,6 +981,38 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     marginBottom: 16,
   },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    marginTop: 12,
+  },
+  emptyEventsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyEventsText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    marginBottom: 16,
+  },
+  addEventButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF3E2',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addEventButtonText: {
+    fontSize: 14,
+    color: '#EE7518',
+    fontWeight: '500',
+  },
   eventCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -940,6 +1045,11 @@ const styles = StyleSheet.create({
   },
   eventTime: {
     fontSize: 14,
+    color: '#8E8E93',
+    marginBottom: 2,
+  },
+  eventLocation: {
+    fontSize: 12,
     color: '#8E8E93',
   },
   eventActions: {
@@ -1157,6 +1267,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
+  },
+  createButtonDisabled: {
+    opacity: 0.6,
   },
   createButtonText: {
     color: '#FFFFFF',

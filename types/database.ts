@@ -103,6 +103,50 @@ export interface Database {
           created_at?: string;
         };
       };
+      events: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          description: string | null;
+          event_date: string;
+          event_time: string;
+          location: string | null;
+          event_type: 'casual' | 'formal' | 'sport' | 'party';
+          icon: string;
+          status: 'ready' | 'preparing' | 'generate';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          description?: string | null;
+          event_date: string;
+          event_time: string;
+          location?: string | null;
+          event_type: 'casual' | 'formal' | 'sport' | 'party';
+          icon: string;
+          status?: 'ready' | 'preparing' | 'generate';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          description?: string | null;
+          event_date?: string;
+          event_time?: string;
+          location?: string | null;
+          event_type?: 'casual' | 'formal' | 'sport' | 'party';
+          icon?: string;
+          status?: 'ready' | 'preparing' | 'generate';
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
@@ -110,6 +154,8 @@ export interface Database {
 export type ClothingType = 'top' | 'bottom' | 'shoes' | 'accessories' | 'outerwear' | 'dress' | 'suit';
 export type Season = 'spring' | 'summer' | 'fall' | 'winter' | 'all';
 export type Style = 'casual' | 'formal' | 'sport' | 'chic' | 'vintage' | 'streetwear';
+export type EventType = 'casual' | 'formal' | 'sport' | 'party';
+export type EventStatus = 'ready' | 'preparing' | 'generate';
 
 export interface ClothingItem {
   id: string;
@@ -136,4 +182,19 @@ export interface OutfitSuggestion {
   context: string | null;
   created_at: string;
   clothes?: ClothingItem[];
+}
+
+export interface Event {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  event_date: string;
+  event_time: string;
+  location: string | null;
+  event_type: EventType;
+  icon: string;
+  status: EventStatus;
+  created_at: string;
+  updated_at: string;
 }
