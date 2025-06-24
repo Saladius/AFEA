@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -23,6 +24,10 @@ import Animated, {
   withRepeat,
   withSequence
 } from 'react-native-reanimated';
+import { useAuth } from '@/hooks/useAuth';
+import { useClothes } from '@/hooks/useClothes';
+import { storageService } from '@/services/storage';
+import { ClothingType, Season, Style } from '@/types/database';
 
 const { width, height } = Dimensions.get('window');
 
@@ -45,26 +50,52 @@ interface DetectedTag {
   label: string;
   value: string;
   editable: boolean;
+  key: keyof ClothingFormData;
+}
+
+interface ClothingFormData {
+  type: ClothingType;
+  color: string;
+  material: string;
+  season: Season;
+  brand: string;
+  style: Style;
+  size: string;
 }
 
 export default function AddItemScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { addClothingItem } = useClothes();
+  
   const [currentStep, setCurrentStep] = useState<Step>('photo');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [editingField, setEditingField] = useState<string | null>(null);
   const progressValue = useSharedValue(0);
   const cropProgressValue = useSharedValue(0);
   const pulseValue = useSharedValue(1);
 
+  const [formData, setFormData] = useState<ClothingFormData>({
+    type: 'top',
+    color: '',
+    material: '',
+    season: 'all',
+    brand: '',
+    style: 'casual',
+    size: '',
+  });
+
   const [detectedTags, setDetectedTags] = useState<DetectedTag[]>([
-    { label: 'Type', value: 'T-shirt', editable: true },
-    { label: 'Couleur', value: 'Bleu', editable: true },
-    { label: 'Matière', value: 'Coton', editable: true },
-    { label: 'Saison', value: 'Printemps, Été', editable: true },
-    { label: 'Marque', value: 'Nike', editable: true },
-    { label: 'Ajouté le', value: '19 juin 2023', editable: false },
+    { label: 'Type', value: 'T-shirt', editable: true, key: 'type' },
+    { label: 'Couleur', value: 'Bleu', editable: true, key: 'color' },
+    { label: 'Matière', value: 'Coton', editable: true, key: 'material' },
+    { label: 'Saison', value: 'Printemps, Été', editable: true, key: 'season' },
+    { label: 'Marque', value: 'Nike', editable: true, key: 'brand' },
+    { label: 'Style', value: 'Décontracté', editable: true, key: 'style' },
+    { label: 'Taille', value: 'M', editable: true, key: 'size' },
   ]);
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
@@ -185,27 +216,160 @@ export default function AddItemScreen() {
     }
   };
 
-  const handleConfirm = () => {
-    Alert.alert(
-      'Article ajouté !',
-      'Votre vêtement a été ajouté à votre garde-robe.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setCurrentStep('photo');
-            setSelectedImage(null);
-            router.back();
+  const handleConfirm = async () => {
+    if (!user || !selectedImage) {
+      Alert.alert('Erreur', 'Utilisateur non connecté ou image manquante');
+      return;
+    }
+
+    setIsSaving(true);
+    
+    try {
+      // Upload image to Supabase Storage
+      const fileName = storageService.generateFileName(user.id);
+      const imageUrl = await storageService.uploadImage(selectedImage, fileName);
+
+      // Prepare clothing item data
+      const clothingItem = {
+        user_id: user.id,
+        image_url: imageUrl,
+        type: mapTypeToDatabase(formData.type),
+        color: formData.color || null,
+        material: formData.material || null,
+        season: formData.season || null,
+        brand: formData.brand || null,
+        style: formData.style || null,
+        size: formData.size || null,
+        model: null,
+        tags: null,
+      };
+
+      // Save to database
+      await addClothingItem(clothingItem);
+
+      Alert.alert(
+        'Article ajouté !',
+        'Votre vêtement a été ajouté à votre garde-robe.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              resetForm();
+              router.back();
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    } catch (error) {
+      console.error('Error saving clothing item:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue lors de l\'ajout de l\'article.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const resetForm = () => {
+    setCurrentStep('photo');
+    setSelectedImage(null);
+    setFormData({
+      type: 'top',
+      color: '',
+      material: '',
+      season: 'all',
+      brand: '',
+      style: 'casual',
+      size: '',
+    });
+    setDetectedTags([
+      { label: 'Type', value: 'T-shirt', editable: true, key: 'type' },
+      { label: 'Couleur', value: 'Bleu', editable: true, key: 'color' },
+      { label: 'Matière', value: 'Coton', editable: true, key: 'material' },
+      { label: 'Saison', value: 'Printemps, Été', editable: true, key: 'season' },
+      { label: 'Marque', value: 'Nike', editable: true, key: 'brand' },
+      { label: 'Style', value: 'Décontracté', editable: true, key: 'style' },
+      { label: 'Taille', value: 'M', editable: true, key: 'size' },
+    ]);
+  };
+
+  const mapTypeToDatabase = (displayType: string): ClothingType => {
+    const typeMap: { [key: string]: ClothingType } = {
+      'T-shirt': 'top',
+      'Chemise': 'top',
+      'Pull': 'top',
+      'Veste': 'outerwear',
+      'Manteau': 'outerwear',
+      'Pantalon': 'bottom',
+      'Jean': 'bottom',
+      'Short': 'bottom',
+      'Jupe': 'bottom',
+      'Robe': 'dress',
+      'Chaussures': 'shoes',
+      'Baskets': 'shoes',
+      'Bottes': 'shoes',
+      'Accessoire': 'accessories',
+      'Sac': 'accessories',
+      'Ceinture': 'accessories',
+    };
+    
+    return typeMap[displayType] || 'top';
+  };
+
+  const mapSeasonToDatabase = (displaySeason: string): Season => {
+    if (displaySeason.includes('Printemps') && displaySeason.includes('Été')) return 'all';
+    if (displaySeason.includes('Printemps')) return 'spring';
+    if (displaySeason.includes('Été')) return 'summer';
+    if (displaySeason.includes('Automne')) return 'fall';
+    if (displaySeason.includes('Hiver')) return 'winter';
+    return 'all';
+  };
+
+  const mapStyleToDatabase = (displayStyle: string): Style => {
+    const styleMap: { [key: string]: Style } = {
+      'Décontracté': 'casual',
+      'Formel': 'formal',
+      'Sport': 'sport',
+      'Chic': 'chic',
+      'Vintage': 'vintage',
+      'Streetwear': 'streetwear',
+    };
+    
+    return styleMap[displayStyle] || 'casual';
   };
 
   const handleEditTag = (index: number, newValue: string) => {
     const updatedTags = [...detectedTags];
     updatedTags[index].value = newValue;
     setDetectedTags(updatedTags);
+
+    // Update form data
+    const tag = updatedTags[index];
+    const updatedFormData = { ...formData };
+    
+    switch (tag.key) {
+      case 'type':
+        updatedFormData.type = mapTypeToDatabase(newValue);
+        break;
+      case 'color':
+        updatedFormData.color = newValue;
+        break;
+      case 'material':
+        updatedFormData.material = newValue;
+        break;
+      case 'season':
+        updatedFormData.season = mapSeasonToDatabase(newValue);
+        break;
+      case 'brand':
+        updatedFormData.brand = newValue;
+        break;
+      case 'style':
+        updatedFormData.style = mapStyleToDatabase(newValue);
+        break;
+      case 'size':
+        updatedFormData.size = newValue;
+        break;
+    }
+    
+    setFormData(updatedFormData);
   };
 
   const renderStepIndicator = () => (
@@ -363,7 +527,9 @@ export default function AddItemScreen() {
             <Image source={{ uri: selectedImage }} style={styles.previewImage} />
           </View>
         )}
-        <Text style={styles.clothingTitle}>T-shirt bleu basique</Text>
+        <Text style={styles.clothingTitle}>
+          {detectedTags.find(tag => tag.key === 'type')?.value || 'Nouveau vêtement'}
+        </Text>
       </View>
 
       {/* Detected Tags */}
@@ -431,31 +597,25 @@ export default function AddItemScreen() {
         </View>
         
         <View style={styles.itemDetails}>
-          <Text style={styles.itemTitle}>T-shirt bleu</Text>
-          <Text style={styles.itemSubtitle}>Coton • Décontracté • Nike</Text>
+          <Text style={styles.itemTitle}>
+            {detectedTags.find(tag => tag.key === 'type')?.value || 'Nouveau vêtement'}
+          </Text>
+          <Text style={styles.itemSubtitle}>
+            {[
+              detectedTags.find(tag => tag.key === 'material')?.value,
+              detectedTags.find(tag => tag.key === 'style')?.value,
+              detectedTags.find(tag => tag.key === 'brand')?.value
+            ].filter(Boolean).join(' • ')}
+          </Text>
         </View>
 
         <View style={styles.detailsList}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Type</Text>
-            <Text style={styles.detailValue}>T-shirt</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Couleur</Text>
-            <Text style={styles.detailValue}>Bleu</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Matière</Text>
-            <Text style={styles.detailValue}>Coton</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Marque</Text>
-            <Text style={styles.detailValue}>Nike</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Saison</Text>
-            <Text style={styles.detailValue}>Printemps, Été</Text>
-          </View>
+          {detectedTags.filter(tag => tag.key !== 'size').map((tag, index) => (
+            <View key={index} style={styles.detailItem}>
+              <Text style={styles.detailLabel}>{tag.label}</Text>
+              <Text style={styles.detailValue}>{tag.value || '-'}</Text>
+            </View>
+          ))}
         </View>
       </View>
     </ScrollView>
@@ -490,6 +650,22 @@ export default function AddItemScreen() {
         return false;
     }
   };
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Vous devez être connecté pour ajouter des vêtements</Text>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.replace('/auth')}
+          >
+            <Text style={styles.primaryButtonText}>Se connecter</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -560,8 +736,13 @@ export default function AddItemScreen() {
             <TouchableOpacity
               style={[styles.continueButton, styles.confirmButton]}
               onPress={handleConfirm}
+              disabled={isSaving}
             >
-              <Text style={styles.continueButtonText}>Ajouter à ma garde-robe</Text>
+              {isSaving ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.continueButtonText}>Ajouter à ma garde-robe</Text>
+              )}
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -586,6 +767,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    marginBottom: 24,
   },
   header: {
     flexDirection: 'row',
