@@ -113,7 +113,7 @@ const colors = [
 const brands = ['Toutes', 'Nike', 'Adidas', 'Levi\'s', 'Zara', 'Hugo Boss', 'Rolex'];
 const sizes = ['Toutes', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '38', '39', '40', '41', '42', '43', '44'];
 const seasons = ['Toutes', 'Printemps', 'Été', 'Automne', 'Hiver', 'Toute saison'];
-const styles = ['Tous', 'Casual', 'Formel', 'Sport', 'Chic'];
+const clothingStyles = ['Tous', 'Casual', 'Formel', 'Sport', 'Chic'];
 
 interface Filters {
   category: string;
@@ -441,7 +441,7 @@ export default function WardrobeScreen() {
               setFilters(prev => ({ ...prev, season: value }))
             )}
 
-            {renderFilterSection('Style', styles, filters.style, (value) => 
+            {renderFilterSection('Style', clothingStyles, filters.style, (value) => 
               setFilters(prev => ({ ...prev, style: value }))
             )}
 
