@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   Platform,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -21,7 +22,9 @@ import {
   Contrast,
   Sparkles,
   Check,
-  ChevronRight
+  ChevronRight,
+  Edit3,
+  Plus
 } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
@@ -50,15 +53,31 @@ const steps: StepConfig[] = [
   { id: 'confirm', title: 'Confirmer', number: 4 },
 ];
 
+interface DetectedTag {
+  label: string;
+  value: string;
+  editable: boolean;
+}
+
 export default function AddItemScreen() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState<Step>('crop'); // Start at crop step for demo
+  const [currentStep, setCurrentStep] = useState<Step>('tags'); // Start at tags step for demo
   const [selectedImage, setSelectedImage] = useState<string | null>('https://images.pexels.com/photos/8532616/pexels-photo-8532616.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1');
-  const [isProcessing, setIsProcessing] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [editingField, setEditingField] = useState<string | null>(null);
   const progressValue = useSharedValue(0);
   const cropProgressValue = useSharedValue(0);
   const pulseValue = useSharedValue(1);
+
+  const [detectedTags, setDetectedTags] = useState<DetectedTag[]>([
+    { label: 'Type', value: 'T-shirt', editable: true },
+    { label: 'Couleur', value: 'Bleu', editable: true },
+    { label: 'Matière', value: 'Coton', editable: true },
+    { label: 'Saison', value: 'Printemps, Été', editable: true },
+    { label: 'Marque', value: '', editable: true },
+    { label: 'Ajouté le', value: '19 juin 2023', editable: false },
+  ]);
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
 
@@ -200,6 +219,12 @@ export default function AddItemScreen() {
         }
       ]
     );
+  };
+
+  const handleEditTag = (index: number, newValue: string) => {
+    const updatedTags = [...detectedTags];
+    updatedTags[index].value = newValue;
+    setDetectedTags(updatedTags);
   };
 
   const renderStepIndicator = () => (
@@ -359,37 +384,70 @@ export default function AddItemScreen() {
   );
 
   const renderTagsStep = () => (
-    <View style={styles.stepContent}>
-      {isProcessing ? (
-        <View style={styles.processingContainer}>
-          <View style={styles.processingAnimation}>
-            <Sparkles size={64} color="#EE7518" />
+    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+      {/* Clothing Preview */}
+      <View style={styles.clothingPreview}>
+        {selectedImage && (
+          <View style={styles.previewImageContainer}>
+            <Image source={{ uri: selectedImage }} style={styles.previewImage} />
           </View>
-          <Text style={styles.processingTitle}>Analyse en cours...</Text>
-          <Text style={styles.processingSubtitle}>
-            Notre IA analyse votre vêtement pour identifier ses caractéristiques
+        )}
+        <Text style={styles.clothingTitle}>T-shirt bleu basique</Text>
+      </View>
+
+      {/* Detected Tags */}
+      <View style={styles.tagsContainer}>
+        {detectedTags.map((tag, index) => (
+          <View key={index} style={styles.tagRow}>
+            <Text style={styles.tagLabel}>{tag.label}</Text>
+            <View style={styles.tagValueContainer}>
+              {editingField === `tag-${index}` ? (
+                <TextInput
+                  style={styles.tagInput}
+                  value={tag.value}
+                  onChangeText={(text) => handleEditTag(index, text)}
+                  onBlur={() => setEditingField(null)}
+                  onSubmitEditing={() => setEditingField(null)}
+                  autoFocus
+                  placeholder={tag.label === 'Marque' ? 'Ajouter une marque' : ''}
+                  placeholderTextColor="#C7C7CC"
+                />
+              ) : (
+                <TouchableOpacity
+                  style={styles.tagValueButton}
+                  onPress={() => tag.editable && setEditingField(`tag-${index}`)}
+                  disabled={!tag.editable}
+                >
+                  <Text style={[
+                    styles.tagValue,
+                    !tag.value && styles.tagValueEmpty,
+                    !tag.editable && styles.tagValueReadonly
+                  ]}>
+                    {tag.value || (tag.label === 'Marque' ? 'Ajouter une marque' : '')}
+                  </Text>
+                  {tag.editable && (
+                    <Edit3 size={16} color="#8E8E93" />
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Success Message */}
+      <View style={styles.successMessage}>
+        <View style={styles.successIcon}>
+          <Check size={20} color="#10B981" />
+        </View>
+        <View style={styles.successContent}>
+          <Text style={styles.successTitle}>Prêt à être ajouté</Text>
+          <Text style={styles.successText}>
+            Ce vêtement sera ajouté à votre garde-robe et disponible pour créer des tenues.
           </Text>
         </View>
-      ) : (
-        <View style={styles.tagsContainer}>
-          <Text style={styles.tagsTitle}>Tags détectés</Text>
-          <View style={styles.tagsList}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>T-shirt</Text>
-            </View>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Bleu</Text>
-            </View>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Coton</Text>
-            </View>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>Décontracté</Text>
-            </View>
-          </View>
-        </View>
-      )}
-    </View>
+      </View>
+    </ScrollView>
   );
 
   const renderConfirmStep = () => (
@@ -491,7 +549,23 @@ export default function AddItemScreen() {
       {/* Bottom Actions */}
       {!isProcessing && (
         <View style={styles.bottomActions}>
-          {currentStep === 'crop' ? (
+          {currentStep === 'tags' ? (
+            <View style={styles.tagsActions}>
+              <TouchableOpacity
+                style={styles.modifyButton}
+                onPress={() => setCurrentStep('crop')}
+              >
+                <Text style={styles.modifyButtonText}>Modifier</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.addToWardrobeButton}
+                onPress={handleConfirm}
+              >
+                <Text style={styles.addToWardrobeButtonText}>Ajouter à ma garde-robe</Text>
+              </TouchableOpacity>
+            </View>
+          ) : currentStep === 'crop' ? (
             <View style={styles.cropActions}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -881,6 +955,123 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     lineHeight: 20,
   },
+  
+  // Tags Step Styles
+  clothingPreview: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  previewImageContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  clothingTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    textAlign: 'center',
+  },
+  tagsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  tagLabel: {
+    fontSize: 16,
+    color: '#8E8E93',
+    fontWeight: '500',
+    width: 80,
+  },
+  tagValueContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  tagValueButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  tagValue: {
+    fontSize: 16,
+    color: '#1C1C1E',
+    fontWeight: '600',
+    flex: 1,
+  },
+  tagValueEmpty: {
+    color: '#C7C7CC',
+    fontWeight: '400',
+  },
+  tagValueReadonly: {
+    color: '#8E8E93',
+  },
+  tagInput: {
+    fontSize: 16,
+    color: '#1C1C1E',
+    fontWeight: '600',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EE7518',
+    paddingVertical: 4,
+  },
+  successMessage: {
+    flexDirection: 'row',
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  successIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  successContent: {
+    flex: 1,
+  },
+  successTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#065F46',
+    marginBottom: 4,
+  },
+  successText: {
+    fontSize: 14,
+    color: '#047857',
+    lineHeight: 20,
+  },
+
   processingContainer: {
     flex: 1,
     alignItems: 'center',
@@ -902,33 +1093,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: 32,
-  },
-  tagsContainer: {
-    flex: 1,
-  },
-  tagsTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    marginBottom: 24,
-  },
-  tagsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  tag: {
-    backgroundColor: '#FEF3E2',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#EE7518',
-  },
-  tagText: {
-    fontSize: 14,
-    color: '#EE7518',
-    fontWeight: '500',
   },
   confirmContainer: {
     alignItems: 'center',
@@ -998,6 +1162,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E2E1',
+  },
+  tagsActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modifyButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E2E1',
+  },
+  modifyButtonText: {
+    color: '#8E8E93',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  addToWardrobeButton: {
+    flex: 2,
+    backgroundColor: '#EE7518',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: '#EE7518',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  addToWardrobeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   cropActions: {
     flexDirection: 'row',
