@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, Trash2, Plus, X } from 'lucide-react-native';
+import { Search, Filter, MoreHorizontal, Plus, X } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 64) / 2; // 24px padding on each side + 16px gap
@@ -108,6 +108,7 @@ const colors = [
   { name: 'purple', color: '#8B5CF6' },
   { name: 'pink', color: '#EC4899' },
   { name: 'gray', color: '#6B7280' },
+  { name: 'white', color: '#FFFFFF' },
 ];
 
 const brands = ['Toutes', 'Nike', 'Adidas', 'Levi\'s', 'Zara', 'Hugo Boss', 'Rolex'];
@@ -130,6 +131,8 @@ export default function WardrobeScreen() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedColor, setSelectedColor] = useState('all');
   const [showFiltersModal, setShowFiltersModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
   
   const [filters, setFilters] = useState<Filters>({
     category: 'Tous',
@@ -165,10 +168,28 @@ export default function WardrobeScreen() {
           style: 'destructive',
           onPress: () => {
             setClothes(prevClothes => prevClothes.filter(c => c.id !== item.id));
+            setShowOptionsModal(false);
           },
         },
       ]
     );
+  };
+
+  const handleEditItem = (item: ClothingItem) => {
+    setShowOptionsModal(false);
+    // Navigate to edit screen or show edit modal
+    console.log('Edit item:', item.name);
+  };
+
+  const handleShareItem = (item: ClothingItem) => {
+    setShowOptionsModal(false);
+    // Implement share functionality
+    console.log('Share item:', item.name);
+  };
+
+  const handleItemOptions = (item: ClothingItem) => {
+    setSelectedItem(item);
+    setShowOptionsModal(true);
   };
 
   const applyFilters = () => {
@@ -191,26 +212,21 @@ export default function WardrobeScreen() {
     setSelectedColor('all');
   };
 
-  const getStyleColor = (style: string) => {
-    switch (style.toLowerCase()) {
-      case 'casual':
-        return '#E5E2E1';
-      case 'sport':
-        return '#E5E2E1';
-      case 'formel':
-        return '#1C1C1E';
-      default:
-        return '#E5E2E1';
-    }
-  };
-
-  const getStyleTextColor = (style: string) => {
-    switch (style.toLowerCase()) {
-      case 'formel':
-        return '#FFFFFF';
-      default:
-        return '#1C1C1E';
-    }
+  const getColorForItem = (color: string): string => {
+    const colorMap: { [key: string]: string } = {
+      'white': '#FFFFFF',
+      'black': '#000000',
+      'blue': '#3B82F6',
+      'red': '#EF4444',
+      'green': '#10B981',
+      'yellow': '#F59E0B',
+      'purple': '#8B5CF6',
+      'pink': '#EC4899',
+      'gray': '#6B7280',
+      'brown': '#A16207',
+      'orange': '#EA580C',
+    };
+    return colorMap[color.toLowerCase()] || '#8E8E93';
   };
 
   const renderFilterSection = (title: string, options: string[], selectedValue: string, onSelect: (value: string) => void) => (
@@ -363,23 +379,20 @@ export default function WardrobeScreen() {
                 <Text style={styles.clothingName}>{item.name}</Text>
                 
                 <View style={styles.cardFooter}>
-                  <View style={[
-                    styles.styleTag,
-                    { backgroundColor: getStyleColor(item.style) }
-                  ]}>
-                    <Text style={[
-                      styles.styleText,
-                      { color: getStyleTextColor(item.style) }
-                    ]}>
-                      {item.style}
-                    </Text>
+                  <View style={styles.styleContainer}>
+                    <View style={[
+                      styles.colorIndicator,
+                      { backgroundColor: getColorForItem(item.color) },
+                      item.color === 'white' && styles.whiteColorBorder
+                    ]} />
+                    <Text style={styles.styleText}>{item.style}</Text>
                   </View>
                   
                   <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteItem(item)}
+                    style={styles.optionsButton}
+                    onPress={() => handleItemOptions(item)}
                   >
-                    <Trash2 size={16} color="#EF4444" />
+                    <MoreHorizontal size={16} color="#8E8E93" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -406,6 +419,47 @@ export default function WardrobeScreen() {
         {/* Add some bottom padding */}
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {/* Item Options Modal */}
+      <Modal
+        visible={showOptionsModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowOptionsModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowOptionsModal(false)}
+        >
+          <View style={styles.optionsModal}>
+            <Text style={styles.optionsTitle}>
+              {selectedItem?.name}
+            </Text>
+            
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() => handleEditItem(selectedItem!)}
+            >
+              <Text style={styles.optionText}>Modifier</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() => handleShareItem(selectedItem!)}
+            >
+              <Text style={styles.optionText}>Partager</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.optionItem, styles.deleteOption]}
+              onPress={() => handleDeleteItem(selectedItem!)}
+            >
+              <Text style={[styles.optionText, styles.deleteOptionText]}>Supprimer</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Filters Modal */}
       <Modal
@@ -637,19 +691,73 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  styleTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+  styleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  colorIndicator: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  whiteColorBorder: {
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
   },
   styleText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '500',
+    color: '#8E8E93',
   },
-  deleteButton: {
+  optionsButton: {
     padding: 4,
     borderRadius: 8,
-    backgroundColor: '#FEF2F2',
+  },
+
+  // Options Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  optionsModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 20,
+    marginHorizontal: 40,
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  optionsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    textAlign: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  optionItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#1C1C1E',
+    textAlign: 'center',
+  },
+  deleteOption: {
+    borderBottomWidth: 0,
+  },
+  deleteOptionText: {
+    color: '#EF4444',
   },
 
   // Empty States
