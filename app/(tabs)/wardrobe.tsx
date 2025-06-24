@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,95 +9,20 @@ import {
   Image,
   Alert,
   Modal,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, MoveHorizontal as MoreHorizontal, Plus, X } from 'lucide-react-native';
+import { Search, Filter, MoveHorizontal as MoreHorizontal, Plus, X, Edit3, Share, Trash2 } from 'lucide-react-native';
+import { useClothes } from '@/hooks/useClothes';
+import { useAuth } from '@/hooks/useAuth';
+import { ClothingItem } from '@/types/database';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 64) / 2; // 24px padding on each side + 16px gap
 
-interface ClothingItem {
-  id: string;
-  name: string;
-  style: string;
-  color: string;
-  image: string;
-  category: string;
-  brand?: string;
-  size?: string;
-  season?: string;
-}
-
-const dummyClothes: ClothingItem[] = [
-  {
-    id: '1',
-    name: 'T-shirt blanc',
-    style: 'Casual',
-    color: 'white',
-    image: 'https://images.pexels.com/photos/1040945/pexels-photo-1040945.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    category: 'Hauts',
-    brand: 'Nike',
-    size: 'M',
-    season: 'Été'
-  },
-  {
-    id: '2',
-    name: 'Jean bleu',
-    style: 'Casual',
-    color: 'blue',
-    image: 'https://images.pexels.com/photos/1598507/pexels-photo-1598507.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    category: 'Bas',
-    brand: 'Levi\'s',
-    size: 'L',
-    season: 'Toute saison'
-  },
-  {
-    id: '3',
-    name: 'Baskets blanches',
-    style: 'Sport',
-    color: 'white',
-    image: 'https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    category: 'Chaussures',
-    brand: 'Adidas',
-    size: '42',
-    season: 'Toute saison'
-  },
-  {
-    id: '4',
-    name: 'Montre classique',
-    style: 'Formel',
-    color: 'black',
-    image: 'https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    category: 'Accessoires',
-    brand: 'Rolex',
-    season: 'Toute saison'
-  },
-  {
-    id: '5',
-    name: 'Chemise bleue',
-    style: 'Formel',
-    color: 'blue',
-    image: 'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    category: 'Hauts',
-    brand: 'Hugo Boss',
-    size: 'L',
-    season: 'Automne'
-  },
-  {
-    id: '6',
-    name: 'Pantalon noir',
-    style: 'Formel',
-    color: 'black',
-    image: 'https://images.pexels.com/photos/1598508/pexels-photo-1598508.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    category: 'Bas',
-    brand: 'Zara',
-    size: 'M',
-    season: 'Hiver'
-  }
-];
-
-const categories = ['Tous', 'Hauts', 'Bas', 'Chaussures', 'Accessoires'];
+const categories = ['Tous', 'Hauts', 'Bas', 'Chaussures', 'Accessoires', 'Robes', 'Vestes'];
 const colors = [
   { name: 'all', color: '#FFFFFF', border: true },
   { name: 'black', color: '#000000' },
@@ -111,7 +36,7 @@ const colors = [
   { name: 'white', color: '#FFFFFF' },
 ];
 
-const brands = ['Toutes', 'Nike', 'Adidas', 'Levi\'s', 'Zara', 'Hugo Boss', 'Rolex'];
+const brands = ['Toutes', 'Nike', 'Adidas', 'Levi\'s', 'Zara', 'Hugo Boss', 'H&M', 'Uniqlo'];
 const sizes = ['Toutes', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '38', '39', '40', '41', '42', '43', '44'];
 const seasons = ['Toutes', 'Printemps', 'Été', 'Automne', 'Hiver', 'Toute saison'];
 const clothingStyles = ['Tous', 'Casual', 'Formel', 'Sport', 'Chic'];
@@ -127,12 +52,15 @@ interface Filters {
 
 export default function WardrobeScreen() {
   const router = useRouter();
-  const [clothes, setClothes] = useState<ClothingItem[]>(dummyClothes);
+  const { user } = useAuth();
+  const { clothes, loading, error, fetchClothes, deleteClothingItem } = useClothes();
+  
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedColor, setSelectedColor] = useState('all');
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   const [filters, setFilters] = useState<Filters>({
     category: 'Tous',
@@ -143,21 +71,61 @@ export default function WardrobeScreen() {
     style: 'Tous'
   });
 
+  // Map database types to display categories
+  const mapTypeToCategory = (type: string): string => {
+    const typeMap: { [key: string]: string } = {
+      'top': 'Hauts',
+      'bottom': 'Bas',
+      'shoes': 'Chaussures',
+      'accessories': 'Accessoires',
+      'outerwear': 'Vestes',
+      'dress': 'Robes',
+      'suit': 'Vestes',
+    };
+    return typeMap[type] || 'Hauts';
+  };
+
+  // Map display category back to database type for filtering
+  const mapCategoryToType = (category: string): string[] => {
+    const categoryMap: { [key: string]: string[] } = {
+      'Tous': ['top', 'bottom', 'shoes', 'accessories', 'outerwear', 'dress', 'suit'],
+      'Hauts': ['top'],
+      'Bas': ['bottom'],
+      'Chaussures': ['shoes'],
+      'Accessoires': ['accessories'],
+      'Vestes': ['outerwear', 'suit'],
+      'Robes': ['dress'],
+    };
+    return categoryMap[category] || [];
+  };
+
   const filteredClothes = clothes.filter(item => {
-    const categoryMatch = selectedCategory === 'Tous' || item.category === selectedCategory;
-    const colorMatch = selectedColor === 'all' || item.color === selectedColor;
+    const allowedTypes = mapCategoryToType(selectedCategory);
+    const categoryMatch = selectedCategory === 'Tous' || allowedTypes.includes(item.type);
+    const colorMatch = selectedColor === 'all' || item.color?.toLowerCase() === selectedColor.toLowerCase();
     const brandMatch = filters.brand === 'Toutes' || item.brand === filters.brand;
     const sizeMatch = filters.size === 'Toutes' || item.size === filters.size;
-    const seasonMatch = filters.season === 'Toutes' || item.season === filters.season;
-    const styleMatch = filters.style === 'Tous' || item.style === filters.style;
+    const seasonMatch = filters.season === 'Toutes' || item.season === filters.season?.toLowerCase();
+    const styleMatch = filters.style === 'Tous' || item.style === filters.style?.toLowerCase();
     
     return categoryMatch && colorMatch && brandMatch && sizeMatch && seasonMatch && styleMatch;
   });
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchClothes();
+    } catch (error) {
+      console.error('Error refreshing clothes:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleDeleteItem = (item: ClothingItem) => {
     Alert.alert(
       'Supprimer l\'article',
-      `Êtes-vous sûr de vouloir supprimer "${item.name}" de votre garde-robe ?`,
+      `Êtes-vous sûr de vouloir supprimer cet article de votre garde-robe ?`,
       [
         {
           text: 'Annuler',
@@ -166,9 +134,14 @@ export default function WardrobeScreen() {
         {
           text: 'Supprimer',
           style: 'destructive',
-          onPress: () => {
-            setClothes(prevClothes => prevClothes.filter(c => c.id !== item.id));
-            setShowOptionsModal(false);
+          onPress: async () => {
+            try {
+              await deleteClothingItem(item.id);
+              setShowOptionsModal(false);
+              Alert.alert('Succès', 'Article supprimé de votre garde-robe.');
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de supprimer l\'article.');
+            }
           },
         },
       ]
@@ -178,13 +151,15 @@ export default function WardrobeScreen() {
   const handleEditItem = (item: ClothingItem) => {
     setShowOptionsModal(false);
     // Navigate to edit screen or show edit modal
-    console.log('Edit item:', item.name);
+    console.log('Edit item:', item.id);
+    Alert.alert('Modification', 'La modification des articles sera bientôt disponible.');
   };
 
   const handleShareItem = (item: ClothingItem) => {
     setShowOptionsModal(false);
     // Implement share functionality
-    console.log('Share item:', item.name);
+    console.log('Share item:', item.id);
+    Alert.alert('Partage', 'Le partage sera bientôt disponible.');
   };
 
   const handleItemOptions = (item: ClothingItem) => {
@@ -214,19 +189,29 @@ export default function WardrobeScreen() {
 
   const getColorForItem = (color: string): string => {
     const colorMap: { [key: string]: string } = {
+      'blanc': '#FFFFFF',
       'white': '#FFFFFF',
+      'noir': '#000000',
       'black': '#000000',
+      'bleu': '#3B82F6',
       'blue': '#3B82F6',
+      'rouge': '#EF4444',
       'red': '#EF4444',
+      'vert': '#10B981',
       'green': '#10B981',
+      'jaune': '#F59E0B',
       'yellow': '#F59E0B',
+      'violet': '#8B5CF6',
       'purple': '#8B5CF6',
+      'rose': '#EC4899',
       'pink': '#EC4899',
+      'gris': '#6B7280',
       'gray': '#6B7280',
+      'marron': '#A16207',
       'brown': '#A16207',
       'orange': '#EA580C',
     };
-    return colorMap[color.toLowerCase()] || '#8E8E93';
+    return colorMap[color?.toLowerCase()] || '#8E8E93';
   };
 
   const renderFilterSection = (title: string, options: string[], selectedValue: string, onSelect: (value: string) => void) => (
@@ -254,8 +239,41 @@ export default function WardrobeScreen() {
     </View>
   );
 
+  // Loading state
+  if (loading && clothes.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Ma garde-robe</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#EE7518" />
+          <Text style={styles.loadingText}>Chargement de votre garde-robe...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error && clothes.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Ma garde-robe</Text>
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Erreur de chargement</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchClothes}>
+            <Text style={styles.retryButtonText}>Réessayer</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // Empty state when no clothes
-  if (filteredClothes.length === 0 && clothes.length === 0) {
+  if (clothes.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         {/* Header */}
@@ -312,7 +330,30 @@ export default function WardrobeScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Stats */}
+      <View style={styles.statsContainer}>
+        <Text style={styles.statsText}>
+          {clothes.length} article{clothes.length > 1 ? 's' : ''} dans votre garde-robe
+        </Text>
+        {filteredClothes.length !== clothes.length && (
+          <Text style={styles.filteredStatsText}>
+            {filteredClothes.length} affiché{filteredClothes.length > 1 ? 's' : ''}
+          </Text>
+        )}
+      </View>
+
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#EE7518']}
+            tintColor="#EE7518"
+          />
+        }
+      >
         {/* Category Filters */}
         <ScrollView 
           horizontal 
@@ -362,9 +403,6 @@ export default function WardrobeScreen() {
               )}
             </TouchableOpacity>
           ))}
-          <TouchableOpacity style={styles.addColorButton}>
-            <Text style={styles.addColorText}>+</Text>
-          </TouchableOpacity>
         </ScrollView>
 
         {/* Clothing Grid - 2 columns */}
@@ -372,29 +410,41 @@ export default function WardrobeScreen() {
           {filteredClothes.map((item) => (
             <View key={item.id} style={[styles.clothingCard, { width: cardWidth }]}>
               <View style={styles.imageContainer}>
-                <Image source={{ uri: item.image }} style={styles.clothingImage} />
+                <Image source={{ uri: item.image_url }} style={styles.clothingImage} />
               </View>
               
               <View style={styles.cardContent}>
-                <Text style={styles.clothingName}>{item.name}</Text>
+                <Text style={styles.clothingName} numberOfLines={1}>
+                  {mapTypeToCategory(item.type)}
+                </Text>
                 
-                <View style={styles.cardFooter}>
-                  <View style={styles.styleContainer}>
-                    <View style={[
-                      styles.colorIndicator,
-                      { backgroundColor: getColorForItem(item.color) },
-                      item.color === 'white' && styles.whiteColorBorder
-                    ]} />
-                    <Text style={styles.styleText}>{item.style}</Text>
-                  </View>
+                <View style={styles.cardDetails}>
+                  {item.color && (
+                    <View style={styles.detailRow}>
+                      <View style={[
+                        styles.colorIndicator,
+                        { backgroundColor: getColorForItem(item.color) },
+                        (item.color?.toLowerCase() === 'white' || item.color?.toLowerCase() === 'blanc') && styles.whiteColorBorder
+                      ]} />
+                      <Text style={styles.detailText} numberOfLines={1}>{item.color}</Text>
+                    </View>
+                  )}
                   
-                  <TouchableOpacity 
-                    style={styles.optionsButton}
-                    onPress={() => handleItemOptions(item)}
-                  >
-                    <MoreHorizontal size={16} color="#8E8E93" />
-                  </TouchableOpacity>
+                  {item.brand && (
+                    <Text style={styles.brandText} numberOfLines={1}>{item.brand}</Text>
+                  )}
+                  
+                  {item.size && (
+                    <Text style={styles.sizeText}>Taille {item.size}</Text>
+                  )}
                 </View>
+                
+                <TouchableOpacity 
+                  style={styles.optionsButton}
+                  onPress={() => handleItemOptions(item)}
+                >
+                  <MoreHorizontal size={16} color="#8E8E93" />
+                </TouchableOpacity>
               </View>
             </View>
           ))}
@@ -434,13 +484,14 @@ export default function WardrobeScreen() {
         >
           <View style={styles.optionsModal}>
             <Text style={styles.optionsTitle}>
-              {selectedItem?.name}
+              {selectedItem ? mapTypeToCategory(selectedItem.type) : 'Article'}
             </Text>
             
             <TouchableOpacity
               style={styles.optionItem}
               onPress={() => handleEditItem(selectedItem!)}
             >
+              <Edit3 size={20} color="#1C1C1E" />
               <Text style={styles.optionText}>Modifier</Text>
             </TouchableOpacity>
             
@@ -448,6 +499,7 @@ export default function WardrobeScreen() {
               style={styles.optionItem}
               onPress={() => handleShareItem(selectedItem!)}
             >
+              <Share size={20} color="#1C1C1E" />
               <Text style={styles.optionText}>Partager</Text>
             </TouchableOpacity>
             
@@ -455,6 +507,7 @@ export default function WardrobeScreen() {
               style={[styles.optionItem, styles.deleteOption]}
               onPress={() => handleDeleteItem(selectedItem!)}
             >
+              <Trash2 size={20} color="#EF4444" />
               <Text style={[styles.optionText, styles.deleteOptionText]}>Supprimer</Text>
             </TouchableOpacity>
           </View>
@@ -573,6 +626,71 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  
+  // Loading and Error States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  retryButton: {
+    backgroundColor: '#EE7518',
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Stats
+  statsContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E2E1',
+  },
+  statsText: {
+    fontSize: 14,
+    color: '#1C1C1E',
+    fontWeight: '600',
+  },
+  filteredStatsText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+
   content: {
     flex: 1,
   },
@@ -633,19 +751,6 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     fontWeight: '600',
   },
-  addColorButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#C7A3FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addColorText: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
 
   // Clothing Grid - Updated for 2 columns
   clothingGrid: {
@@ -666,6 +771,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     marginBottom: 16,
+    position: 'relative',
   },
   imageContainer: {
     width: '100%',
@@ -679,40 +785,54 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: 16,
+    position: 'relative',
   },
   clothingName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  cardDetails: {
+    marginBottom: 8,
   },
-  styleContainer: {
+  detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 4,
   },
   colorIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
   },
   whiteColorBorder: {
     borderWidth: 1,
     borderColor: '#E5E2E1',
   },
-  styleText: {
-    fontSize: 14,
+  detailText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    flex: 1,
+  },
+  brandText: {
+    fontSize: 12,
+    color: '#EE7518',
     fontWeight: '500',
+    marginBottom: 2,
+  },
+  sizeText: {
+    fontSize: 11,
     color: '#8E8E93',
   },
   optionsButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
     padding: 4,
     borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
 
   // Options Modal
@@ -743,15 +863,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
+    gap: 12,
   },
   optionText: {
     fontSize: 16,
     color: '#1C1C1E',
-    textAlign: 'center',
+    flex: 1,
   },
   deleteOption: {
     borderBottomWidth: 0,
