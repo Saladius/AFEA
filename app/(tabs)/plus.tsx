@@ -582,9 +582,11 @@ export default function AddItemScreen() {
         {/* Right side - Tags card */}
         <View style={styles.rightTagsCard}>
           <Text style={styles.tagsCardTitle}>Tags générés</Text>
-          <View style={styles.tagsGrid}>
-            <View style={styles.tagCategory}>
-              <Text style={styles.tagCategoryLabel}>Type</Text>
+          
+          {/* Type Row */}
+          <View style={styles.tagRow}>
+            <Text style={styles.tagRowLabel}>Type</Text>
+            <View style={styles.tagRowChips}>
               <View style={styles.tagChip}>
                 <Text style={styles.tagChipText}>T-shirt</Text>
               </View>
@@ -592,9 +594,12 @@ export default function AddItemScreen() {
                 <Text style={styles.tagChipText}>Polo</Text>
               </View>
             </View>
-            
-            <View style={styles.tagCategory}>
-              <Text style={styles.tagCategoryLabel}>Couleur</Text>
+          </View>
+          
+          {/* Couleur Row */}
+          <View style={styles.tagRow}>
+            <Text style={styles.tagRowLabel}>Couleur</Text>
+            <View style={styles.tagRowChips}>
               <View style={styles.tagChip}>
                 <Text style={styles.tagChipText}>Bleu</Text>
               </View>
@@ -602,9 +607,12 @@ export default function AddItemScreen() {
                 <Text style={styles.tagChipText}>Marine</Text>
               </View>
             </View>
-            
-            <View style={styles.tagCategory}>
-              <Text style={styles.tagCategoryLabel}>Matière</Text>
+          </View>
+          
+          {/* Matière Row */}
+          <View style={styles.tagRow}>
+            <Text style={styles.tagRowLabel}>Matière</Text>
+            <View style={styles.tagRowChips}>
               <View style={styles.tagChip}>
                 <Text style={styles.tagChipText}>Coton</Text>
               </View>
@@ -1258,28 +1266,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
+    marginBottom: 16,
+  },
+  tagRow: {
     marginBottom: 12,
   },
-  tagsGrid: {
-    gap: 12,
-  },
-  tagCategory: {
-    marginBottom: 8,
-  },
-  tagCategoryLabel: {
+  tagRowLabel: {
     fontSize: 12,
     fontWeight: '500',
     color: '#8E8E93',
     marginBottom: 6,
+  },
+  tagRowChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   tagChip: {
     backgroundColor: '#EE7518',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    marginRight: 8,
-    marginBottom: 4,
-    alignSelf: 'flex-start',
   },
   tagChipText: {
     color: '#FFFFFF',
