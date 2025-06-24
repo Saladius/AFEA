@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -28,7 +28,9 @@ import Animated, {
   useAnimatedStyle, 
   withSpring,
   withTiming,
-  interpolate
+  interpolate,
+  withRepeat,
+  withSequence
 } from 'react-native-reanimated';
 
 const { width, height } = Dimensions.get('window');
@@ -50,10 +52,13 @@ const steps: StepConfig[] = [
 
 export default function AddItemScreen() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState<Step>('photo');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentStep, setCurrentStep] = useState<Step>('crop'); // Start at crop step for demo
+  const [selectedImage, setSelectedImage] = useState<string | null>('https://images.pexels.com/photos/8532616/pexels-photo-8532616.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1');
+  const [isProcessing, setIsProcessing] = useState(true);
+  const [processingProgress, setProcessingProgress] = useState(0);
   const progressValue = useSharedValue(0);
+  const cropProgressValue = useSharedValue(0);
+  const pulseValue = useSharedValue(1);
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
 
@@ -61,9 +66,56 @@ export default function AddItemScreen() {
     progressValue.value = withSpring((currentStepIndex + 1) / steps.length);
   }, [currentStep, currentStepIndex]);
 
+  // Simulate automatic cropping process
+  useEffect(() => {
+    if (currentStep === 'crop' && isProcessing) {
+      // Start pulse animation
+      pulseValue.value = withRepeat(
+        withSequence(
+          withTiming(1.1, { duration: 800 }),
+          withTiming(1, { duration: 800 })
+        ),
+        -1,
+        true
+      );
+
+      // Simulate progress
+      const interval = setInterval(() => {
+        setProcessingProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            setIsProcessing(false);
+            pulseValue.value = withTiming(1, { duration: 300 });
+            return 100;
+          }
+          return prev + 2;
+        });
+      }, 50);
+
+      return () => clearInterval(interval);
+    }
+  }, [currentStep, isProcessing]);
+
+  // Animate crop progress
+  useEffect(() => {
+    cropProgressValue.value = withTiming(processingProgress / 100, { duration: 100 });
+  }, [processingProgress]);
+
   const progressStyle = useAnimatedStyle(() => {
     return {
       width: `${progressValue.value * 100}%`,
+    };
+  });
+
+  const cropProgressStyle = useAnimatedStyle(() => {
+    return {
+      width: `${cropProgressValue.value * 100}%`,
+    };
+  });
+
+  const pulseStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: pulseValue.value }],
     };
   });
 
@@ -100,6 +152,8 @@ export default function AddItemScreen() {
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
         setCurrentStep('crop');
+        setIsProcessing(true);
+        setProcessingProgress(0);
       }
     } catch (error) {
       Alert.alert('Erreur', 'Une erreur est survenue lors de la sélection de l\'image.');
@@ -256,21 +310,51 @@ export default function AddItemScreen() {
     <View style={styles.stepContent}>
       <View style={styles.cropContainer}>
         {selectedImage && (
-          <View style={styles.imagePreview}>
+          <Animated.View style={[styles.imagePreview, pulseStyle]}>
             <Image source={{ uri: selectedImage }} style={styles.cropImage} />
+            
+            {/* Red checkered overlay for the t-shirt */}
             <View style={styles.cropOverlay}>
-              <View style={styles.cropGuide} />
+              <View style={styles.checkeredPattern} />
             </View>
-          </View>
+            
+            {/* Processing overlay */}
+            {isProcessing && (
+              <View style={styles.processingOverlay}>
+                <View style={styles.processingContent}>
+                  <Text style={styles.processingTitle}>Découpage automatique en cours...</Text>
+                  
+                  {/* Progress bar */}
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBackground}>
+                      <Animated.View style={[styles.progressFill, cropProgressStyle]} />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+          </Animated.View>
         )}
       </View>
       
-      <View style={styles.cropInstructions}>
-        <Text style={styles.instructionTitle}>Ajustez le cadrage</Text>
-        <Text style={styles.instructionText}>
-          Assurez-vous que le vêtement est bien centré et visible
-        </Text>
-      </View>
+      {!isProcessing && (
+        <View style={styles.cropInstructions}>
+          <Text style={styles.instructionTitle}>Découpage en cours</Text>
+          <Text style={styles.instructionText}>
+            Notre IA supprime l'arrière-plan de votre photo
+          </Text>
+          
+          {/* Warning message */}
+          <View style={styles.warningContainer}>
+            <View style={styles.warningIcon}>
+              <Text style={styles.warningEmoji}>⚠️</Text>
+            </View>
+            <Text style={styles.warningText}>
+              Le découpage automatique peut prendre quelques secondes selon la complexité de l'image.
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 
@@ -364,7 +448,7 @@ export default function AddItemScreen() {
       case 'photo':
         return selectedImage !== null;
       case 'crop':
-        return true;
+        return !isProcessing;
       case 'tags':
         return !isProcessing;
       case 'confirm':
@@ -407,7 +491,23 @@ export default function AddItemScreen() {
       {/* Bottom Actions */}
       {!isProcessing && (
         <View style={styles.bottomActions}>
-          {currentStep === 'confirm' ? (
+          {currentStep === 'crop' ? (
+            <View style={styles.cropActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setCurrentStep('photo')}
+              >
+                <Text style={styles.cancelButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.validateButton}
+                onPress={handleNextStep}
+              >
+                <Text style={styles.validateButtonText}>Valider le découpage</Text>
+              </TouchableOpacity>
+            </View>
+          ) : currentStep === 'confirm' ? (
             <TouchableOpacity
               style={[styles.continueButton, styles.confirmButton]}
               onPress={handleConfirm}
@@ -675,9 +775,15 @@ const styles = StyleSheet.create({
   imagePreview: {
     position: 'relative',
     width: width - 48,
-    height: width - 48,
+    height: (width - 48) * 1.2,
     borderRadius: 20,
     overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   cropImage: {
     width: '100%',
@@ -689,16 +795,53 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  cropGuide: {
-    width: '80%',
-    height: '80%',
+  checkeredPattern: {
+    position: 'absolute',
+    top: '25%',
+    left: '25%',
+    width: '50%',
+    height: '30%',
+    backgroundColor: '#FF0000',
+    opacity: 0.7,
+    // Create checkered pattern effect
     borderWidth: 2,
-    borderColor: '#EE7518',
-    borderRadius: 12,
-    borderStyle: 'dashed',
+    borderColor: '#FFFFFF',
+  },
+  processingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 20,
+  },
+  processingContent: {
+    alignItems: 'center',
+  },
+  processingTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  progressContainer: {
+    width: '100%',
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBackground: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#EE7518',
+    borderRadius: 2,
   },
   cropInstructions: {
     alignItems: 'center',
@@ -715,6 +858,28 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     textAlign: 'center',
     lineHeight: 24,
+    marginBottom: 24,
+  },
+  warningContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF3E2',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'flex-start',
+    maxWidth: width - 80,
+  },
+  warningIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  warningEmoji: {
+    fontSize: 16,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#8E8E93',
+    lineHeight: 20,
   },
   processingContainer: {
     flex: 1,
@@ -730,12 +895,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 32,
-  },
-  processingTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    marginBottom: 12,
   },
   processingSubtitle: {
     fontSize: 16,
@@ -839,6 +998,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E2E1',
+  },
+  cropActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E2E1',
+  },
+  cancelButtonText: {
+    color: '#8E8E93',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  validateButton: {
+    flex: 2,
+    backgroundColor: '#EE7518',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: '#EE7518',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  validateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   continueButton: {
     backgroundColor: '#EE7518',
