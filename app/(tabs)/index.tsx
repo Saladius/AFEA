@@ -81,9 +81,9 @@ export default function HomeScreen() {
     },
     {
       id: 2,
-      title: 'Team Meeting',
-      time: 'Today, 2:00 PM',
-      type: 'Formal',
+      title: 'Dinner Date',
+      time: 'Tonight, 7:00 PM',
+      type: 'Casual',
       color: '#EE7518'
     }
   ];
@@ -226,7 +226,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Plan Your Outfit */}
+        {/* Plan Your Outfit - Fixed Layout */}
         <View style={styles.planSection}>
           <View style={styles.planHeader}>
             <Text style={styles.sectionTitle}>Plan Your Outfit</Text>
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 
-  // Plan Section - Updated for square cards
+  // Plan Section - Fixed for all cards visible
   planSection: {
     backgroundColor: '#FFFFFF',
     marginTop: 8,
@@ -498,41 +498,42 @@ const styles = StyleSheet.create({
   },
   planGrid: {
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   planCard: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     justifyContent: 'space-between',
   },
   planIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   planTitle: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 2,
   },
   planTime: {
-    fontSize: 10,
+    fontSize: 8,
     color: '#8E8E93',
     marginBottom: 2,
   },
   planType: {
-    fontSize: 10,
+    fontSize: 8,
     color: '#8E8E93',
   },
   addPlanCard: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#EE7518',
