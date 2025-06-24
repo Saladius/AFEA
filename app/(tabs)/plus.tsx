@@ -78,6 +78,11 @@ export default function AddItemScreen() {
   const cropProgressValue = useSharedValue(0);
   const pulseValue = useSharedValue(1);
 
+  // Form state for the new design
+  const [clothingName, setClothingName] = useState('T-shirt bleu basique');
+  const [selectedSeason, setSelectedSeason] = useState<Season>('all');
+  const [brandName, setBrandName] = useState('');
+
   const [formData, setFormData] = useState<ClothingFormData>({
     type: 'top',
     color: '',
@@ -245,11 +250,11 @@ export default function AddItemScreen() {
         type: mapTypeToDatabase(detectedTags.find(tag => tag.key === 'type')?.value || 'T-shirt'),
         color: detectedTags.find(tag => tag.key === 'color')?.value || null,
         material: detectedTags.find(tag => tag.key === 'material')?.value || null,
-        season: mapSeasonToDatabase(detectedTags.find(tag => tag.key === 'season')?.value || 'Toute saison'),
-        brand: detectedTags.find(tag => tag.key === 'brand')?.value || null,
+        season: selectedSeason,
+        brand: brandName || null,
         style: mapStyleToDatabase(detectedTags.find(tag => tag.key === 'style')?.value || 'Décontracté'),
         size: detectedTags.find(tag => tag.key === 'size')?.value || null,
-        model: null,
+        model: clothingName || null,
         tags: null,
       };
 
@@ -306,6 +311,9 @@ export default function AddItemScreen() {
   const resetForm = () => {
     setCurrentStep('photo');
     setSelectedImage(null);
+    setClothingName('T-shirt bleu basique');
+    setSelectedSeason('all');
+    setBrandName('');
     setFormData({
       type: 'top',
       color: '',
@@ -569,62 +577,84 @@ export default function AddItemScreen() {
             <Image source={{ uri: selectedImage }} style={styles.previewImage} />
           </View>
         )}
-        <Text style={styles.clothingTitle}>
-          {detectedTags.find(tag => tag.key === 'type')?.value || 'Nouveau vêtement'}
-        </Text>
       </View>
 
-      {/* Detected Tags */}
-      <View style={styles.tagsContainer}>
-        {detectedTags.map((tag, index) => (
-          <View key={index} style={styles.tagRow}>
-            <Text style={styles.tagLabel}>{tag.label}</Text>
-            <View style={styles.tagValueContainer}>
-              {editingField === `tag-${index}` ? (
-                <TextInput
-                  style={styles.tagInput}
-                  value={tag.value}
-                  onChangeText={(text) => handleEditTag(index, text)}
-                  onBlur={() => setEditingField(null)}
-                  onSubmitEditing={() => setEditingField(null)}
-                  autoFocus
-                  placeholder={tag.label === 'Marque' ? 'Ajouter une marque' : ''}
-                  placeholderTextColor="#C7C7CC"
-                />
-              ) : (
-                <TouchableOpacity
-                  style={styles.tagValueButton}
-                  onPress={() => tag.editable && setEditingField(`tag-${index}`)}
-                  disabled={!tag.editable}
-                >
-                  <Text style={[
-                    styles.tagValue,
-                    !tag.value && styles.tagValueEmpty,
-                    !tag.editable && styles.tagValueReadonly
-                  ]}>
-                    {tag.value || (tag.label === 'Marque' ? 'Ajouter une marque' : '')}
-                  </Text>
-                  {tag.editable && (
-                    <Edit3 size={14} color="#8E8E93" />
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
+      {/* Generated Tags Section */}
+      <View style={styles.tagsSection}>
+        <Text style={styles.tagsSectionTitle}>Tags générés</Text>
+        <View style={styles.generatedTags}>
+          <View style={styles.tagChip}>
+            <Text style={styles.tagChipText}>T-shirt</Text>
           </View>
-        ))}
+          <View style={styles.tagChip}>
+            <Text style={styles.tagChipText}>Polo</Text>
+          </View>
+          <View style={styles.tagChip}>
+            <Text style={styles.tagChipText}>Bleu</Text>
+          </View>
+          <View style={styles.tagChip}>
+            <Text style={styles.tagChipText}>Marine</Text>
+          </View>
+          <View style={styles.tagChip}>
+            <Text style={styles.tagChipText}>Coton</Text>
+          </View>
+          <View style={styles.tagChip}>
+            <Text style={styles.tagChipText}>Jersey</Text>
+          </View>
+        </View>
       </View>
 
-      {/* Success Message */}
-      <View style={styles.successMessage}>
-        <View style={styles.successIcon}>
-          <Check size={18} color="#10B981" />
+      {/* Clothing Name Input */}
+      <View style={styles.inputSection}>
+        <Text style={styles.inputLabel}>Nom du vêtement</Text>
+        <TextInput
+          style={styles.textInput}
+          value={clothingName}
+          onChangeText={setClothingName}
+          placeholder="T-shirt bleu basique"
+          placeholderTextColor="#C7C7CC"
+        />
+      </View>
+
+      {/* Season Selection */}
+      <View style={styles.inputSection}>
+        <Text style={styles.inputLabel}>Saison</Text>
+        <View style={styles.seasonContainer}>
+          {[
+            { key: 'all', label: 'Printemps' },
+            { key: 'summer', label: 'Été' },
+            { key: 'fall', label: 'Automne' },
+            { key: 'winter', label: 'Hiver' },
+          ].map((season) => (
+            <TouchableOpacity
+              key={season.key}
+              style={[
+                styles.seasonChip,
+                selectedSeason === season.key && styles.seasonChipActive
+              ]}
+              onPress={() => setSelectedSeason(season.key as Season)}
+            >
+              <Text style={[
+                styles.seasonChipText,
+                selectedSeason === season.key && styles.seasonChipTextActive
+              ]}>
+                {season.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-        <View style={styles.successContent}>
-          <Text style={styles.successTitle}>Prêt à être ajouté</Text>
-          <Text style={styles.successText}>
-            Ce vêtement sera ajouté à votre garde-robe et disponible pour créer des tenues.
-          </Text>
-        </View>
+      </View>
+
+      {/* Brand Input */}
+      <View style={styles.inputSection}>
+        <Text style={styles.inputLabel}>Marque (optionnel)</Text>
+        <TextInput
+          style={styles.textInput}
+          value={brandName}
+          onChangeText={setBrandName}
+          placeholder="Entrez la marque..."
+          placeholderTextColor="#C7C7CC"
+        />
       </View>
 
       {/* Show any errors from the clothes hook */}
@@ -647,24 +677,45 @@ export default function AddItemScreen() {
         
         <View style={styles.itemDetails}>
           <Text style={styles.itemTitle}>
-            {detectedTags.find(tag => tag.key === 'type')?.value || 'Nouveau vêtement'}
+            {clothingName || 'Nouveau vêtement'}
           </Text>
           <Text style={styles.itemSubtitle}>
             {[
               detectedTags.find(tag => tag.key === 'material')?.value,
               detectedTags.find(tag => tag.key === 'style')?.value,
-              detectedTags.find(tag => tag.key === 'brand')?.value
+              brandName
             ].filter(Boolean).join(' • ')}
           </Text>
         </View>
 
         <View style={styles.detailsList}>
-          {detectedTags.filter(tag => tag.key !== 'size').map((tag, index) => (
-            <View key={index} style={styles.detailItem}>
-              <Text style={styles.detailLabel}>{tag.label}</Text>
-              <Text style={styles.detailValue}>{tag.value || '-'}</Text>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Type</Text>
+            <Text style={styles.detailValue}>{detectedTags.find(tag => tag.key === 'type')?.value || '-'}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Couleur</Text>
+            <Text style={styles.detailValue}>{detectedTags.find(tag => tag.key === 'color')?.value || '-'}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Matière</Text>
+            <Text style={styles.detailValue}>{detectedTags.find(tag => tag.key === 'material')?.value || '-'}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Saison</Text>
+            <Text style={styles.detailValue}>
+              {selectedSeason === 'all' ? 'Printemps' : 
+               selectedSeason === 'summer' ? 'Été' :
+               selectedSeason === 'fall' ? 'Automne' :
+               selectedSeason === 'winter' ? 'Hiver' : 'Toute saison'}
+            </Text>
+          </View>
+          {brandName && (
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Marque</Text>
+              <Text style={styles.detailValue}>{brandName}</Text>
             </View>
-          ))}
+          )}
         </View>
       </View>
     </ScrollView>
@@ -692,7 +743,7 @@ export default function AddItemScreen() {
       case 'crop':
         return !isProcessing;
       case 'tags':
-        return !isProcessing;
+        return !isProcessing && clothingName.trim() !== '';
       case 'confirm':
         return true;
       default:
@@ -755,12 +806,16 @@ export default function AddItemScreen() {
                 style={styles.modifyButton}
                 onPress={() => setCurrentStep('crop')}
               >
-                <Text style={styles.modifyButtonText}>Modifier</Text>
+                <Text style={styles.modifyButtonText}>Retour</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={styles.addToWardrobeButton}
+                style={[
+                  styles.addToWardrobeButton,
+                  !canProceed() && styles.addToWardrobeButtonDisabled
+                ]}
                 onPress={() => setCurrentStep('confirm')}
+                disabled={!canProceed()}
               >
                 <Text style={styles.addToWardrobeButtonText}>Continuer</Text>
               </TouchableOpacity>
@@ -1151,17 +1206,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  // Tags Step Styles
+  // New Tags Step Styles
   clothingPreview: {
     alignItems: 'center',
     marginBottom: 24,
   },
   previewImageContainer: {
-    width: 100,
-    height: 100,
+    width: 120,
+    height: 120,
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 12,
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1173,100 +1227,82 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  clothingTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1C1C1E',
-    textAlign: 'center',
+  
+  // Generated Tags Section
+  tagsSection: {
+    marginBottom: 24,
   },
-  tagsContainer: {
+  tagsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 12,
+  },
+  generatedTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tagChip: {
+    backgroundColor: '#EE7518',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  tagChipText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  
+  // Input Sections
+  inputSection: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1C1C1E',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  
+  // Season Selection
+  seasonContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  seasonChip: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
-  },
-  tagLabel: {
-    fontSize: 14,
-    color: '#8E8E93',
-    fontWeight: '500',
-    width: 70,
-  },
-  tagValueContainer: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  tagValueButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 2,
-  },
-  tagValue: {
-    fontSize: 14,
-    color: '#1C1C1E',
-    fontWeight: '600',
-    flex: 1,
-  },
-  tagValueEmpty: {
-    color: '#C7C7CC',
-    fontWeight: '400',
-  },
-  tagValueReadonly: {
-    color: '#8E8E93',
-  },
-  tagInput: {
-    fontSize: 14,
-    color: '#1C1C1E',
-    fontWeight: '600',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EE7518',
-    paddingVertical: 2,
-  },
-  successMessage: {
-    flexDirection: 'row',
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
-    marginBottom: 16,
+    borderColor: '#E5E2E1',
   },
-  successIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  seasonChipActive: {
+    backgroundColor: '#EE7518',
+    borderColor: '#EE7518',
   },
-  successContent: {
-    flex: 1,
-  },
-  successTitle: {
+  seasonChipText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#065F46',
-    marginBottom: 2,
+    fontWeight: '500',
+    color: '#8E8E93',
   },
-  successText: {
-    fontSize: 13,
-    color: '#047857',
-    lineHeight: 18,
+  seasonChipTextActive: {
+    color: '#FFFFFF',
   },
+
   errorMessage: {
     backgroundColor: '#FEF2F2',
     borderRadius: 12,
@@ -1372,6 +1408,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  addToWardrobeButtonDisabled: {
+    backgroundColor: '#E5E2E1',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   addToWardrobeButtonText: {
     color: '#FFFFFF',
