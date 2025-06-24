@@ -570,7 +570,7 @@ export default function AddItemScreen() {
 
   const renderTagsStep = () => (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-      {/* Clothing Preview */}
+      {/* Clothing Preview - Smaller as per wireframe */}
       <View style={styles.clothingPreview}>
         {selectedImage && (
           <View style={styles.previewImageContainer}>
@@ -579,7 +579,7 @@ export default function AddItemScreen() {
         )}
       </View>
 
-      {/* Generated Tags Section */}
+      {/* Generated Tags Section - Matching wireframe design */}
       <View style={styles.tagsSection}>
         <Text style={styles.tagsSectionTitle}>Tags générés</Text>
         <View style={styles.generatedTags}>
@@ -604,7 +604,7 @@ export default function AddItemScreen() {
         </View>
       </View>
 
-      {/* Clothing Name Input */}
+      {/* Clothing Name Input - Matching wireframe */}
       <View style={styles.inputSection}>
         <Text style={styles.inputLabel}>Nom du vêtement</Text>
         <TextInput
@@ -616,12 +616,12 @@ export default function AddItemScreen() {
         />
       </View>
 
-      {/* Season Selection */}
+      {/* Season Selection - Matching wireframe with orange selection */}
       <View style={styles.inputSection}>
         <Text style={styles.inputLabel}>Saison</Text>
         <View style={styles.seasonContainer}>
           {[
-            { key: 'all', label: 'Printemps' },
+            { key: 'spring', label: 'Printemps' },
             { key: 'summer', label: 'Été' },
             { key: 'fall', label: 'Automne' },
             { key: 'winter', label: 'Hiver' },
@@ -645,7 +645,7 @@ export default function AddItemScreen() {
         </View>
       </View>
 
-      {/* Brand Input */}
+      {/* Brand Input - Optional as per wireframe */}
       <View style={styles.inputSection}>
         <Text style={styles.inputLabel}>Marque (optionnel)</Text>
         <TextInput
@@ -704,7 +704,7 @@ export default function AddItemScreen() {
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Saison</Text>
             <Text style={styles.detailValue}>
-              {selectedSeason === 'all' ? 'Printemps' : 
+              {selectedSeason === 'spring' ? 'Printemps' : 
                selectedSeason === 'summer' ? 'Été' :
                selectedSeason === 'fall' ? 'Automne' :
                selectedSeason === 'winter' ? 'Hiver' : 'Toute saison'}
@@ -1206,14 +1206,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  // New Tags Step Styles
+  // New Tags Step Styles - Matching wireframe
   clothingPreview: {
     alignItems: 'center',
     marginBottom: 24,
   },
   previewImageContainer: {
-    width: 120,
-    height: 120,
+    width: 80,
+    height: 80,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
@@ -1228,7 +1228,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   
-  // Generated Tags Section
+  // Generated Tags Section - Matching wireframe
   tagsSection: {
     marginBottom: 24,
   },
@@ -1255,7 +1255,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   
-  // Input Sections
+  // Input Sections - Matching wireframe
   inputSection: {
     marginBottom: 20,
   },
@@ -1276,7 +1276,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E2E1',
   },
   
-  // Season Selection
+  // Season Selection - Matching wireframe with orange selection
   seasonContainer: {
     flexDirection: 'row',
     gap: 8,
