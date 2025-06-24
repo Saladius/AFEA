@@ -14,18 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { 
-  ArrowLeft, 
-  Camera, 
-  Image as ImageIcon, 
-  Lightbulb,
-  Contrast,
-  Sparkles,
-  Check,
-  ChevronRight,
-  Edit3,
-  Plus
-} from 'lucide-react-native';
+import { ArrowLeft, Camera, Image as ImageIcon, Lightbulb, Contrast, Sparkles, Check, ChevronRight, CreditCard as Edit3, Plus } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
