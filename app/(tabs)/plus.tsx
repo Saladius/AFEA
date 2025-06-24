@@ -570,91 +570,106 @@ export default function AddItemScreen() {
 
   const renderTagsStep = () => (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-      {/* Clothing Preview - Smaller as per wireframe */}
-      <View style={styles.clothingPreview}>
-        {selectedImage && (
-          <View style={styles.previewImageContainer}>
-            <Image source={{ uri: selectedImage }} style={styles.previewImage} />
-          </View>
-        )}
-      </View>
+      {/* Horizontal Layout: Image on left, Tags card on right */}
+      <View style={styles.horizontalContainer}>
+        {/* Left side - Image */}
+        <View style={styles.leftImageContainer}>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.horizontalImage} />
+          )}
+        </View>
 
-      {/* Generated Tags Section - Matching wireframe design */}
-      <View style={styles.tagsSection}>
-        <Text style={styles.tagsSectionTitle}>Tags générés</Text>
-        <View style={styles.generatedTags}>
-          <View style={styles.tagChip}>
-            <Text style={styles.tagChipText}>T-shirt</Text>
-          </View>
-          <View style={styles.tagChip}>
-            <Text style={styles.tagChipText}>Polo</Text>
-          </View>
-          <View style={styles.tagChip}>
-            <Text style={styles.tagChipText}>Bleu</Text>
-          </View>
-          <View style={styles.tagChip}>
-            <Text style={styles.tagChipText}>Marine</Text>
-          </View>
-          <View style={styles.tagChip}>
-            <Text style={styles.tagChipText}>Coton</Text>
-          </View>
-          <View style={styles.tagChip}>
-            <Text style={styles.tagChipText}>Jersey</Text>
+        {/* Right side - Tags card */}
+        <View style={styles.rightTagsCard}>
+          <Text style={styles.tagsCardTitle}>Tags générés</Text>
+          <View style={styles.tagsGrid}>
+            <View style={styles.tagCategory}>
+              <Text style={styles.tagCategoryLabel}>Type</Text>
+              <View style={styles.tagChip}>
+                <Text style={styles.tagChipText}>T-shirt</Text>
+              </View>
+              <View style={styles.tagChip}>
+                <Text style={styles.tagChipText}>Polo</Text>
+              </View>
+            </View>
+            
+            <View style={styles.tagCategory}>
+              <Text style={styles.tagCategoryLabel}>Couleur</Text>
+              <View style={styles.tagChip}>
+                <Text style={styles.tagChipText}>Bleu</Text>
+              </View>
+              <View style={styles.tagChip}>
+                <Text style={styles.tagChipText}>Marine</Text>
+              </View>
+            </View>
+            
+            <View style={styles.tagCategory}>
+              <Text style={styles.tagCategoryLabel}>Matière</Text>
+              <View style={styles.tagChip}>
+                <Text style={styles.tagChipText}>Coton</Text>
+              </View>
+              <View style={styles.tagChip}>
+                <Text style={styles.tagChipText}>Jersey</Text>
+              </View>
+            </View>
           </View>
         </View>
       </View>
 
-      {/* Clothing Name Input - Matching wireframe */}
-      <View style={styles.inputSection}>
-        <Text style={styles.inputLabel}>Nom du vêtement</Text>
-        <TextInput
-          style={styles.textInput}
-          value={clothingName}
-          onChangeText={setClothingName}
-          placeholder="T-shirt bleu basique"
-          placeholderTextColor="#C7C7CC"
-        />
-      </View>
-
-      {/* Season Selection - Matching wireframe with orange selection */}
-      <View style={styles.inputSection}>
-        <Text style={styles.inputLabel}>Saison</Text>
-        <View style={styles.seasonContainer}>
-          {[
-            { key: 'spring', label: 'Printemps' },
-            { key: 'summer', label: 'Été' },
-            { key: 'fall', label: 'Automne' },
-            { key: 'winter', label: 'Hiver' },
-          ].map((season) => (
-            <TouchableOpacity
-              key={season.key}
-              style={[
-                styles.seasonChip,
-                selectedSeason === season.key && styles.seasonChipActive
-              ]}
-              onPress={() => setSelectedSeason(season.key as Season)}
-            >
-              <Text style={[
-                styles.seasonChipText,
-                selectedSeason === season.key && styles.seasonChipTextActive
-              ]}>
-                {season.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      {/* Form inputs below */}
+      <View style={styles.formSection}>
+        {/* Clothing Name Input */}
+        <View style={styles.inputSection}>
+          <Text style={styles.inputLabel}>Nom du vêtement</Text>
+          <TextInput
+            style={styles.textInput}
+            value={clothingName}
+            onChangeText={setClothingName}
+            placeholder="T-shirt bleu basique"
+            placeholderTextColor="#C7C7CC"
+          />
         </View>
-      </View>
 
-      {/* Brand Input - Optional as per wireframe */}
-      <View style={styles.inputSection}>
-        <Text style={styles.inputLabel}>Marque (optionnel)</Text>
-        <TextInput
-          style={styles.textInput}
-          value={brandName}
-          onChangeText={setBrandName}
-          placeholder="Entrez la marque..."
-          placeholderTextColor="#C7C7CC"
-        />
+        {/* Season Selection */}
+        <View style={styles.inputSection}>
+          <Text style={styles.inputLabel}>Saison</Text>
+          <View style={styles.seasonContainer}>
+            {[
+              { key: 'spring', label: 'Printemps' },
+              { key: 'summer', label: 'Été' },
+              { key: 'fall', label: 'Automne' },
+              { key: 'winter', label: 'Hiver' },
+            ].map((season) => (
+              <TouchableOpacity
+                key={season.key}
+                style={[
+                  styles.seasonChip,
+                  selectedSeason === season.key && styles.seasonChipActive
+                ]}
+                onPress={() => setSelectedSeason(season.key as Season)}
+              >
+                <Text style={[
+                  styles.seasonChipText,
+                  selectedSeason === season.key && styles.seasonChipTextActive
+                ]}>
+                  {season.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Brand Input */}
+        <View style={styles.inputSection}>
+          <Text style={styles.inputLabel}>Marque (optionnel)</Text>
+          <TextInput
+            style={styles.textInput}
+            value={brandName}
+            onChangeText={setBrandName}
+            placeholder="Entrez la marque..."
+            placeholderTextColor="#C7C7CC"
+          />
+        </View>
       </View>
 
       {/* Show any errors from the clothes hook */}
@@ -1206,14 +1221,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  // New Tags Step Styles - Matching wireframe
-  clothingPreview: {
-    alignItems: 'center',
+  // New Horizontal Layout Styles
+  horizontalContainer: {
+    flexDirection: 'row',
     marginBottom: 24,
+    gap: 16,
   },
-  previewImageContainer: {
-    width: 80,
-    height: 80,
+  leftImageContainer: {
+    width: 120,
+    height: 160,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
@@ -1223,31 +1239,47 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  previewImage: {
+  horizontalImage: {
     width: '100%',
     height: '100%',
   },
-  
-  // Generated Tags Section - Matching wireframe
-  tagsSection: {
-    marginBottom: 24,
+  rightTagsCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  tagsSectionTitle: {
+  tagsCardTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 12,
   },
-  generatedTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  tagsGrid: {
+    gap: 12,
+  },
+  tagCategory: {
+    marginBottom: 8,
+  },
+  tagCategoryLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8E8E93',
+    marginBottom: 6,
   },
   tagChip: {
     backgroundColor: '#EE7518',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
   },
   tagChipText: {
     color: '#FFFFFF',
@@ -1255,7 +1287,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   
-  // Input Sections - Matching wireframe
+  // Form Section
+  formSection: {
+    gap: 20,
+  },
   inputSection: {
     marginBottom: 20,
   },
@@ -1276,7 +1311,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E2E1',
   },
   
-  // Season Selection - Matching wireframe with orange selection
+  // Season Selection
   seasonContainer: {
     flexDirection: 'row',
     gap: 8,
