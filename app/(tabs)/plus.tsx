@@ -66,7 +66,7 @@ interface ClothingFormData {
 export default function AddItemScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { addClothingItem } = useClothes();
+  const { addClothingItem, loading: clothesLoading, error: clothesError } = useClothes();
   
   const [currentStep, setCurrentStep] = useState<Step>('photo');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -197,6 +197,7 @@ export default function AddItemScreen() {
         setProcessingProgress(0);
       }
     } catch (error) {
+      console.error('Image picker error:', error);
       Alert.alert('Erreur', 'Une erreur est survenue lors de la sélection de l\'image.');
     }
   };
@@ -225,44 +226,74 @@ export default function AddItemScreen() {
     setIsSaving(true);
     
     try {
+      console.log('🔄 Starting to save clothing item...');
+      console.log('User ID:', user.id);
+      console.log('Selected Image:', selectedImage);
+      console.log('Form Data:', formData);
+
       // Upload image to Supabase Storage
       const fileName = storageService.generateFileName(user.id);
+      console.log('📁 Generated filename:', fileName);
+      
       const imageUrl = await storageService.uploadImage(selectedImage, fileName);
+      console.log('📤 Image uploaded successfully:', imageUrl);
 
       // Prepare clothing item data
       const clothingItem = {
         user_id: user.id,
         image_url: imageUrl,
-        type: mapTypeToDatabase(formData.type),
-        color: formData.color || null,
-        material: formData.material || null,
-        season: formData.season || null,
-        brand: formData.brand || null,
-        style: formData.style || null,
-        size: formData.size || null,
+        type: mapTypeToDatabase(detectedTags.find(tag => tag.key === 'type')?.value || 'T-shirt'),
+        color: detectedTags.find(tag => tag.key === 'color')?.value || null,
+        material: detectedTags.find(tag => tag.key === 'material')?.value || null,
+        season: mapSeasonToDatabase(detectedTags.find(tag => tag.key === 'season')?.value || 'Toute saison'),
+        brand: detectedTags.find(tag => tag.key === 'brand')?.value || null,
+        style: mapStyleToDatabase(detectedTags.find(tag => tag.key === 'style')?.value || 'Décontracté'),
+        size: detectedTags.find(tag => tag.key === 'size')?.value || null,
         model: null,
         tags: null,
       };
 
-      // Save to database
-      await addClothingItem(clothingItem);
+      console.log('👕 Prepared clothing item:', clothingItem);
+
+      // Save to database using the hook
+      const savedItem = await addClothingItem(clothingItem);
+      console.log('✅ Item saved successfully:', savedItem);
 
       Alert.alert(
         'Article ajouté !',
         'Votre vêtement a été ajouté à votre garde-robe.',
         [
           {
-            text: 'OK',
+            text: 'Voir ma garde-robe',
             onPress: () => {
               resetForm();
-              router.back();
+              router.replace('/(tabs)/wardrobe');
+            }
+          },
+          {
+            text: 'Ajouter un autre',
+            onPress: () => {
+              resetForm();
             }
           }
         ]
       );
     } catch (error) {
-      console.error('Error saving clothing item:', error);
-      Alert.alert('Erreur', 'Une erreur est survenue lors de l\'ajout de l\'article.');
+      console.error('❌ Error saving clothing item:', error);
+      
+      let errorMessage = 'Une erreur est survenue lors de l\'ajout de l\'article.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('storage')) {
+          errorMessage = 'Erreur lors du téléchargement de l\'image. Vérifiez votre connexion.';
+        } else if (error.message.includes('database') || error.message.includes('supabase')) {
+          errorMessage = 'Erreur de base de données. Veuillez réessayer.';
+        } else if (error.message.includes('auth')) {
+          errorMessage = 'Erreur d\'authentification. Veuillez vous reconnecter.';
+        }
+      }
+      
+      Alert.alert('Erreur', errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -289,6 +320,10 @@ export default function AddItemScreen() {
       { label: 'Style', value: 'Décontracté', editable: true, key: 'style' },
       { label: 'Taille', value: 'M', editable: true, key: 'size' },
     ]);
+    setIsProcessing(false);
+    setIsSaving(false);
+    setProcessingProgress(0);
+    setEditingField(null);
   };
 
   const mapTypeToDatabase = (displayType: string): ClothingType => {
@@ -296,12 +331,14 @@ export default function AddItemScreen() {
       'T-shirt': 'top',
       'Chemise': 'top',
       'Pull': 'top',
+      'Haut': 'top',
       'Veste': 'outerwear',
       'Manteau': 'outerwear',
       'Pantalon': 'bottom',
       'Jean': 'bottom',
       'Short': 'bottom',
       'Jupe': 'bottom',
+      'Bas': 'bottom',
       'Robe': 'dress',
       'Chaussures': 'shoes',
       'Baskets': 'shoes',
@@ -320,6 +357,7 @@ export default function AddItemScreen() {
     if (displaySeason.includes('Été')) return 'summer';
     if (displaySeason.includes('Automne')) return 'fall';
     if (displaySeason.includes('Hiver')) return 'winter';
+    if (displaySeason.includes('Toute saison')) return 'all';
     return 'all';
   };
 
@@ -584,6 +622,13 @@ export default function AddItemScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Show any errors from the clothes hook */}
+      {clothesError && (
+        <View style={styles.errorMessage}>
+          <Text style={styles.errorText}>{clothesError}</Text>
+        </View>
+      )}
     </ScrollView>
   );
 
@@ -736,9 +781,9 @@ export default function AddItemScreen() {
             <TouchableOpacity
               style={[styles.continueButton, styles.confirmButton]}
               onPress={handleConfirm}
-              disabled={isSaving}
+              disabled={isSaving || clothesLoading}
             >
-              {isSaving ? (
+              {(isSaving || clothesLoading) ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <Text style={styles.continueButtonText}>Ajouter à ma garde-robe</Text>
@@ -1193,6 +1238,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     borderWidth: 1,
     borderColor: '#BBF7D0',
+    marginBottom: 16,
   },
   successIcon: {
     width: 28,
@@ -1216,6 +1262,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#047857',
     lineHeight: 18,
+  },
+  errorMessage: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   confirmContainer: {
     alignItems: 'center',
