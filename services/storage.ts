@@ -7,9 +7,6 @@ class StorageService {
     try {
       console.log('🔄 Starting image upload:', { uri, fileName });
       
-      // Ensure bucket exists before uploading
-      await this.ensureBucketExists();
-      
       // For web platform, handle differently
       if (typeof window !== 'undefined') {
         // Web platform - convert URI to blob
@@ -27,6 +24,23 @@ class StorageService {
 
         if (error) {
           console.error('❌ Upload error:', error);
+          
+          // Handle specific bucket not found error
+          if (error.message.includes('Bucket not found') || error.message.includes('bucket') || error.message.includes('404')) {
+            throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas dans votre projet Supabase.
+
+Pour résoudre ce problème :
+1. Connectez-vous à votre tableau de bord Supabase
+2. Allez dans la section "Storage" 
+3. Cliquez sur "New bucket"
+4. Créez un bucket nommé exactement : "${this.bucketName}"
+5. Configurez-le comme "Public bucket" pour permettre l'accès aux images
+6. Définissez une limite de taille de fichier (recommandé : 5MB)
+7. Autorisez les types MIME : image/jpeg, image/png, image/webp
+
+Une fois le bucket créé, réessayez d'ajouter votre vêtement.`);
+          }
+          
           throw new Error(`Erreur lors du téléchargement: ${error.message}`);
         }
 
@@ -54,6 +68,23 @@ class StorageService {
 
         if (error) {
           console.error('❌ Upload error:', error);
+          
+          // Handle specific bucket not found error
+          if (error.message.includes('Bucket not found') || error.message.includes('bucket') || error.message.includes('404')) {
+            throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas dans votre projet Supabase.
+
+Pour résoudre ce problème :
+1. Connectez-vous à votre tableau de bord Supabase
+2. Allez dans la section "Storage" 
+3. Cliquez sur "New bucket"
+4. Créez un bucket nommé exactement : "${this.bucketName}"
+5. Configurez-le comme "Public bucket" pour permettre l'accès aux images
+6. Définissez une limite de taille de fichier (recommandé : 5MB)
+7. Autorisez les types MIME : image/jpeg, image/png, image/webp
+
+Une fois le bucket créé, réessayez d'ajouter votre vêtement.`);
+          }
+          
           throw new Error(`Erreur lors du téléchargement: ${error.message}`);
         }
 
@@ -93,39 +124,20 @@ class StorageService {
     return `${userId}/${timestamp}-${random}.jpg`;
   }
 
-  // Helper method to create bucket if it doesn't exist
-  async ensureBucketExists(): Promise<void> {
+  // Helper method to check if bucket exists
+  async checkBucketExists(): Promise<boolean> {
     try {
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      const { data: buckets, error } = await supabase.storage.listBuckets();
       
-      if (bucketsError) {
-        console.error('❌ Error listing buckets:', bucketsError);
-        throw new Error(`Erreur lors de la vérification des buckets: ${bucketsError.message}`);
+      if (error) {
+        console.error('❌ Error listing buckets:', error);
+        return false;
       }
 
-      const bucketExists = buckets?.some(bucket => bucket.name === this.bucketName);
-      
-      if (!bucketExists) {
-        console.log('🔧 Creating bucket:', this.bucketName);
-        const { error: createError } = await supabase.storage.createBucket(this.bucketName, {
-          public: true,
-          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
-          fileSizeLimit: 5242880 // 5MB
-        });
-
-        if (createError) {
-          console.error('❌ Error creating bucket:', createError);
-          // If bucket creation fails, provide helpful error message
-          throw new Error(`Impossible de créer le bucket "${this.bucketName}". Veuillez créer ce bucket manuellement dans votre tableau de bord Supabase (Storage > Nouveau bucket > "${this.bucketName}") et le configurer comme public.`);
-        }
-
-        console.log('✅ Bucket created successfully');
-      } else {
-        console.log('✅ Bucket already exists');
-      }
+      return buckets?.some(bucket => bucket.name === this.bucketName) || false;
     } catch (error) {
-      console.error('❌ Error ensuring bucket exists:', error);
-      throw error;
+      console.error('❌ Error checking bucket existence:', error);
+      return false;
     }
   }
 }
