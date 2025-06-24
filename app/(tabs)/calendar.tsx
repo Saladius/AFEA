@@ -62,7 +62,8 @@ export default function CalendarScreen() {
     createEvent, 
     updateEventStatus, 
     getEventsForDate, 
-    getEventsForMonth 
+    getEventsForMonth,
+    fetchEvents
   } = useEvents();
   
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
@@ -122,7 +123,7 @@ export default function CalendarScreen() {
     switch (status) {
       case 'ready': return 'Tenue prête';
       case 'preparing': return 'À préparer';
-      case 'generate': return 'Générer tenue';
+      case 'generate': return 'Voir tenue';
       default: return status;
     }
   };
@@ -290,20 +291,33 @@ export default function CalendarScreen() {
             return (
               <View key={event.id} style={styles.eventCard}>
                 <View style={[styles.eventIconContainer, { backgroundColor: iconData?.bg }]}>
-                  <IconComponent size={20} color={iconData?.color} />
+                  <IconComponent size={24} color={iconData?.color} />
                 </View>
                 
                 <View style={styles.eventDetails}>
                   <Text style={styles.eventTitle}>{event.title}</Text>
-                  <Text style={styles.eventTime}>{event.event_time}</Text>
-                  {event.location && (
-                    <Text style={styles.eventLocation}>{event.location}</Text>
-                  )}
+                  <Text style={styles.eventTime}>
+                    {event.event_time} - {event.event_time.split(':').map((part, index) => {
+                      if (index === 0) {
+                        const hour = parseInt(part);
+                        return String(hour + 1).padStart(2, '0');
+                      }
+                      return part;
+                    }).join(':')}
+                  </Text>
                 </View>
                 
                 <View style={styles.eventActions}>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(event.status) }]}>
-                    <Text style={styles.statusText}>{getStatusText(event.status)}</Text>
+                  <View style={[
+                    styles.statusBadge, 
+                    { backgroundColor: event.status === 'ready' ? '#10B981' : event.status === 'preparing' ? '#F59E0B' : '#E5E2E1' }
+                  ]}>
+                    <Text style={[
+                      styles.statusText,
+                      { color: event.status === 'generate' ? '#EE7518' : '#FFFFFF' }
+                    ]}>
+                      {getStatusText(event.status)}
+                    </Text>
                   </View>
                   
                   {event.status === 'generate' && (
@@ -970,7 +984,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EE7518',
   },
 
-  // Events List
+  // Events List - Updated to match design exactly
   eventsListContainer: {
     paddingHorizontal: 24,
     paddingBottom: 100,
@@ -1027,12 +1041,12 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   eventIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
   eventDetails: {
     flex: 1,
@@ -1057,14 +1071,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    minWidth: 80,
+    alignItems: 'center',
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#FFFFFF',
+    fontWeight: '600',
   },
   generateButton: {
     flexDirection: 'row',

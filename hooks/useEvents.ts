@@ -54,10 +54,9 @@ export function useEvents() {
       });
       console.log('✅ Event created:', newEvent);
       
-      // Update local state immediately
-      setEvents(prev => [...prev, newEvent].sort((a, b) => 
-        new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
-      ));
+      // Immediately refresh the events list to ensure live updates
+      await fetchEvents();
+      
       return newEvent;
     } catch (err) {
       console.error('❌ Error creating event:', err);
@@ -86,7 +85,8 @@ export function useEvents() {
     setError(null);
     try {
       const updatedEvent = await eventsService.updateEvent(id, updates);
-      setEvents(prev => prev.map(event => event.id === id ? updatedEvent : event));
+      // Refresh events list to ensure consistency
+      await fetchEvents();
       return updatedEvent;
     } catch (err) {
       setError('Failed to update event');
@@ -102,7 +102,8 @@ export function useEvents() {
     setError(null);
     try {
       await eventsService.deleteEvent(id);
-      setEvents(prev => prev.filter(event => event.id !== id));
+      // Refresh events list after deletion
+      await fetchEvents();
     } catch (err) {
       setError('Failed to delete event');
       console.error(err);
