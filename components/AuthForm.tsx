@@ -73,9 +73,28 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
 
       if (result.error) {
         if (mode === 'signin') {
-          setError('Identifiants incorrects. Veuillez réessayer.');
+          // Provide more helpful error messaging for sign-in failures
+          if (result.error.message.includes('Invalid login credentials') || 
+              result.error.message.includes('Invalid email or password')) {
+            setError('Email ou mot de passe incorrect. Vérifiez vos identifiants ou créez un compte si vous n\'en avez pas encore.');
+          } else if (result.error.message.includes('Email not confirmed')) {
+            setError('Veuillez confirmer votre email avant de vous connecter.');
+          } else if (result.error.message.includes('Too many requests')) {
+            setError('Trop de tentatives de connexion. Veuillez patienter quelques minutes.');
+          } else {
+            setError('Erreur de connexion. Veuillez réessayer.');
+          }
         } else {
-          setError(result.error.message);
+          // Handle signup errors
+          if (result.error.message.includes('User already registered')) {
+            setError('Un compte existe déjà avec cet email. Essayez de vous connecter.');
+          } else if (result.error.message.includes('Password should be at least')) {
+            setError('Le mot de passe doit contenir au moins 6 caractères.');
+          } else if (result.error.message.includes('Invalid email')) {
+            setError('Adresse email invalide.');
+          } else {
+            setError(result.error.message || 'Erreur lors de la création du compte.');
+          }
         }
       } else if (mode === 'signup') {
         Alert.alert(
@@ -88,7 +107,12 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
         router.replace('/(tabs)');
       }
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez réessayer.');
+      console.error('Auth error:', err);
+      if (mode === 'signin') {
+        setError('Erreur de connexion. Vérifiez votre connexion internet et réessayez.');
+      } else {
+        setError('Erreur lors de la création du compte. Veuillez réessayer.');
+      }
     } finally {
       setLoading(false);
     }
