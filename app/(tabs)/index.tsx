@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 
-  // Plan Section
+  // Plan Section - Updated for square cards
   planSection: {
     backgroundColor: '#FFFFFF',
     marginTop: 8,
@@ -501,11 +501,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   planCard: {
-    flex: 1,
+    width: 120,
+    height: 120,
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
     padding: 16,
-    minHeight: 120,
+    justifyContent: 'space-between',
   },
   planIcon: {
     width: 24,
@@ -513,21 +514,20 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
   },
   planTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   planTime: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#8E8E93',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   planType: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#8E8E93',
   },
   addPlanCard: {
@@ -541,5 +541,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FEF3E2',
   },
-
 });
