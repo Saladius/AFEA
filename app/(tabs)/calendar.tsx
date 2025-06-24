@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,8 @@ import {
   Modal,
   TextInput,
   Alert,
-  Platform,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -31,45 +32,11 @@ import {
   Shirt,
   User
 } from 'lucide-react-native';
+import { useAuth } from '@/hooks/useAuth';
+import { useEvents } from '@/hooks/useEvents';
+import { Event, EventType } from '@/types/database';
 
 const { width } = Dimensions.get('window');
-
-interface Event {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location?: string;
-  type: 'casual' | 'formal' | 'sport' | 'party';
-  icon: string;
-  status: 'ready' | 'preparing' | 'generate';
-  description?: string;
-}
-
-const dummyEvents: Event[] = [
-  {
-    id: '1',
-    title: 'Réunion d\'équipe',
-    date: '2023-06-20',
-    time: '10:00 - 11:30',
-    location: 'Bureau',
-    type: 'formal',
-    icon: 'briefcase',
-    status: 'ready',
-    description: 'Réunion hebdomadaire avec l\'équipe'
-  },
-  {
-    id: '2',
-    title: 'Café avec Marc',
-    date: '2023-06-20',
-    time: '15:00 - 16:00',
-    location: 'Café Central',
-    type: 'casual',
-    icon: 'utensils',
-    status: 'preparing',
-    description: 'Rattrapage avec Marc'
-  }
-];
 
 const eventIcons = [
   { id: 'utensils', icon: Utensils, color: '#3B82F6', bg: '#DBEAFE' },
@@ -89,10 +56,24 @@ const eventTypes = [
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { 
+    events, 
+    loading, 
+    error, 
+    createEvent, 
+    updateEvent, 
+    deleteEvent, 
+    updateEventStatus,
+    fetchEventsForDate,
+    fetchEventsForMonth,
+    fetchEvents
+  } = useEvents();
+
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [events, setEvents] = useState<Event[]>(dummyEvents);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Form state
   const [selectedIcon, setSelectedIcon] = useState('utensils');
@@ -100,12 +81,16 @@ export default function CalendarScreen() {
   const [eventDate, setEventDate] = useState(new Date());
   const [eventTime, setEventTime] = useState(new Date());
   const [eventLocation, setEventLocation] = useState('');
-  const [eventType, setEventType] = useState<'casual' | 'formal' | 'sport' | 'party'>('casual');
+  const [eventType, setEventType] = useState<EventType>('casual');
   const [eventDescription, setEventDescription] = useState('');
   
   // Date and Time picker states
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  
+  // Calendar state
+  const [monthEvents, setMonthEvents] = useState<Event[]>([]);
+  const [todayEvents, setTodayEvents] = useState<Event[]>([]);
 
   const currentMonth = selectedDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   const currentYear = selectedDate.getFullYear();
@@ -117,6 +102,52 @@ export default function CalendarScreen() {
   const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Adjust for Monday start
 
   const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+  // Fetch events for current month when month changes
+  useEffect(() => {
+    if (user) {
+      loadMonthEvents();
+    }
+  }, [selectedDate, user]);
+
+  // Fetch today's events
+  useEffect(() => {
+    if (user) {
+      loadTodayEvents();
+    }
+  }, [user, events]);
+
+  const loadMonthEvents = async () => {
+    try {
+      const events = await fetchEventsForMonth(currentYear, currentMonthIndex);
+      setMonthEvents(events);
+    } catch (error) {
+      console.error('Error loading month events:', error);
+    }
+  };
+
+  const loadTodayEvents = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const events = await fetchEventsForDate(today);
+      setTodayEvents(events);
+    } catch (error) {
+      console.error('Error loading today events:', error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchEvents();
+      await loadMonthEvents();
+      await loadTodayEvents();
+    } catch (error) {
+      console.error('Error refreshing events:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newDate = new Date(selectedDate);
@@ -130,7 +161,7 @@ export default function CalendarScreen() {
 
   const getEventsForDate = (day: number) => {
     const dateStr = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return events.filter(event => event.date === dateStr);
+    return monthEvents.filter(event => event.event_date === dateStr);
   };
 
   const getStatusColor = (status: string) => {
@@ -177,31 +208,74 @@ export default function CalendarScreen() {
     });
   };
 
-  const handleCreateEvent = () => {
-    if (!eventTitle) {
+  const handleCreateEvent = async () => {
+    if (!eventTitle.trim()) {
       Alert.alert('Erreur', 'Veuillez remplir le nom de l\'événement');
       return;
     }
 
-    const formattedDate = eventDate.toISOString().split('T')[0];
-    const formattedTime = formatTime(eventTime);
+    try {
+      const formattedDate = eventDate.toISOString().split('T')[0];
+      const formattedTime = formatTime(eventTime);
 
-    const newEvent: Event = {
-      id: Date.now().toString(),
-      title: eventTitle,
-      date: formattedDate,
-      time: formattedTime,
-      location: eventLocation,
-      type: eventType,
-      icon: selectedIcon,
-      status: 'generate',
-      description: eventDescription,
-    };
+      await createEvent({
+        title: eventTitle.trim(),
+        description: eventDescription.trim() || undefined,
+        event_date: formattedDate,
+        event_time: formattedTime,
+        location: eventLocation.trim() || undefined,
+        event_type: eventType,
+        icon: selectedIcon,
+        status: 'generate',
+      });
 
-    setEvents(prev => [...prev, newEvent]);
-    setShowCreateModal(false);
-    resetForm();
-    Alert.alert('Succès', 'Événement créé avec succès !');
+      setShowCreateModal(false);
+      resetForm();
+      Alert.alert('Succès', 'Événement créé avec succès !');
+      
+      // Refresh data
+      await loadMonthEvents();
+      await loadTodayEvents();
+    } catch (error) {
+      console.error('Error creating event:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue lors de la création de l\'événement');
+    }
+  };
+
+  const handleDeleteEvent = async (event: Event) => {
+    Alert.alert(
+      'Supprimer l\'événement',
+      `Êtes-vous sûr de vouloir supprimer "${event.title}" ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteEvent(event.id);
+              Alert.alert('Succès', 'Événement supprimé avec succès');
+              await loadMonthEvents();
+              await loadTodayEvents();
+            } catch (error) {
+              console.error('Error deleting event:', error);
+              Alert.alert('Erreur', 'Une erreur est survenue lors de la suppression');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleGenerateOutfit = async (event: Event) => {
+    try {
+      await updateEventStatus(event.id, 'preparing');
+      Alert.alert('Génération en cours', 'Votre tenue est en cours de génération...');
+      await loadTodayEvents();
+    } catch (error) {
+      console.error('Error generating outfit:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue lors de la génération de la tenue');
+    }
   };
 
   const renderCalendarDays = () => {
@@ -220,7 +294,10 @@ export default function CalendarScreen() {
     // Days of the current month
     for (let day = 1; day <= daysInMonth; day++) {
       const dayEvents = getEventsForDate(day);
-      const isToday = day === 20; // Highlighting day 20 as shown in design
+      const today = new Date();
+      const isToday = day === today.getDate() && 
+                     currentMonthIndex === today.getMonth() && 
+                     currentYear === today.getFullYear();
       
       days.push(
         <TouchableOpacity key={day} style={styles.dayCell}>
@@ -256,11 +333,25 @@ export default function CalendarScreen() {
   };
 
   const renderEventsList = () => {
-    const todayEvents = events.filter(event => event.date === '2023-06-20');
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
     
     return (
       <View style={styles.eventsListContainer}>
-        <Text style={styles.eventsDateTitle}>20 Juin</Text>
+        <Text style={styles.eventsDateTitle}>{todayStr}</Text>
+        
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color="#EE7518" />
+            <Text style={styles.loadingText}>Chargement des événements...</Text>
+          </View>
+        )}
+
+        {!loading && todayEvents.length === 0 && (
+          <View style={styles.noEventsContainer}>
+            <Text style={styles.noEventsText}>Aucun événement aujourd'hui</Text>
+          </View>
+        )}
         
         {todayEvents.map((event) => {
           const iconData = eventIcons.find(icon => icon.id === event.icon);
@@ -274,16 +365,26 @@ export default function CalendarScreen() {
               
               <View style={styles.eventDetails}>
                 <Text style={styles.eventTitle}>{event.title}</Text>
-                <Text style={styles.eventTime}>{event.time}</Text>
+                <Text style={styles.eventTime}>{event.event_time}</Text>
+                {event.location && (
+                  <Text style={styles.eventLocation}>{event.location}</Text>
+                )}
               </View>
               
               <View style={styles.eventActions}>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(event.status) }]}>
+                <TouchableOpacity
+                  style={[styles.statusBadge, { backgroundColor: getStatusColor(event.status) }]}
+                  onPress={() => handleDeleteEvent(event)}
+                  onLongPress={() => handleDeleteEvent(event)}
+                >
                   <Text style={styles.statusText}>{getStatusText(event.status)}</Text>
-                </View>
+                </TouchableOpacity>
                 
                 {event.status === 'generate' && (
-                  <TouchableOpacity style={styles.generateButton}>
+                  <TouchableOpacity 
+                    style={styles.generateButton}
+                    onPress={() => handleGenerateOutfit(event)}
+                  >
                     <Shirt size={16} color="#EE7518" />
                     <Text style={styles.generateButtonText}>Générer tenue</Text>
                   </TouchableOpacity>
@@ -507,6 +608,22 @@ export default function CalendarScreen() {
     );
   };
 
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.authContainer}>
+          <Text style={styles.authText}>Vous devez être connecté pour voir vos événements</Text>
+          <TouchableOpacity
+            style={styles.authButton}
+            onPress={() => router.replace('/auth')}
+          >
+            <Text style={styles.authButtonText}>Se connecter</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -543,7 +660,18 @@ export default function CalendarScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#EE7518"
+            colors={['#EE7518']}
+          />
+        }
+      >
         {viewMode === 'calendar' && (
           <>
             {/* Calendar Navigation */}
@@ -707,7 +835,7 @@ export default function CalendarScreen() {
                         styles.eventTypeOption,
                         eventType === type.id && styles.eventTypeOptionSelected
                       ]}
-                      onPress={() => setEventType(type.id as any)}
+                      onPress={() => setEventType(type.id as EventType)}
                     >
                       <IconComponent 
                         size={24} 
@@ -744,10 +872,15 @@ export default function CalendarScreen() {
           {/* Create Button */}
           <View style={styles.modalFooter}>
             <TouchableOpacity
-              style={styles.createButton}
+              style={[styles.createButton, loading && styles.createButtonDisabled]}
               onPress={handleCreateEvent}
+              disabled={loading}
             >
-              <Text style={styles.createButtonText}>Créer l'événement</Text>
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.createButtonText}>Créer l'événement</Text>
+              )}
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -764,6 +897,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  authContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  authText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  authButton: {
+    backgroundColor: '#EE7518',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  authButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
@@ -908,6 +1065,26 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     marginBottom: 16,
   },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#8E8E93',
+  },
+  noEventsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noEventsText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+  },
   eventCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -941,6 +1118,11 @@ const styles = StyleSheet.create({
   eventTime: {
     fontSize: 14,
     color: '#8E8E93',
+  },
+  eventLocation: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 2,
   },
   eventActions: {
     alignItems: 'flex-end',
@@ -1157,6 +1339,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
+  },
+  createButtonDisabled: {
+    opacity: 0.6,
   },
   createButtonText: {
     color: '#FFFFFF',
