@@ -32,10 +32,24 @@ export default function RootLayout() {
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
       const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
       
+      const isValidUrl = (url: string | undefined): boolean => {
+        if (!url) return false;
+        try {
+          new URL(url);
+          return !url.includes('your-project-ref') && !url.includes('your_supabase_project_url');
+        } catch {
+          return false;
+        }
+      };
+
+      const isValidKey = (key: string | undefined): boolean => {
+        return !!(key && key !== 'your_supabase_anon_key' && key.length > 20);
+      };
+      
       if (!supabaseUrl || !supabaseAnonKey || 
-          supabaseUrl === 'your_supabase_project_url' || 
-          supabaseAnonKey === 'your_supabase_anon_key') {
-        setSupabaseError('Supabase configuration missing');
+          !isValidUrl(supabaseUrl) || 
+          !isValidKey(supabaseAnonKey)) {
+        setSupabaseError('Supabase configuration missing or invalid');
         setShowSetupGuide(true);
         return;
       }
@@ -81,7 +95,9 @@ export default function RootLayout() {
         onComplete={() => {
           setShowSetupGuide(false);
           // Force a reload to reinitialize Supabase
-          window.location.reload();
+          if (typeof window !== 'undefined') {
+            window.location.reload();
+          }
         }} 
       />
     );
