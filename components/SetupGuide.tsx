@@ -9,15 +9,7 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  Database, 
-  ExternalLink, 
-  Copy, 
-  CheckCircle, 
-  AlertCircle,
-  ArrowRight,
-  Settings
-} from 'lucide-react-native';
+import { Database, ExternalLink, Copy, CircleCheck as CheckCircle, CircleAlert as AlertCircle, ArrowRight, Settings } from 'lucide-react-native';
 
 interface SetupGuideProps {
   onComplete: () => void;
