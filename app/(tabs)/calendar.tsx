@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -96,11 +97,15 @@ export default function CalendarScreen() {
   // Form state
   const [selectedIcon, setSelectedIcon] = useState('utensils');
   const [eventTitle, setEventTitle] = useState('');
-  const [eventDate, setEventDate] = useState('');
-  const [eventTime, setEventTime] = useState('');
+  const [eventDate, setEventDate] = useState(new Date());
+  const [eventTime, setEventTime] = useState(new Date());
   const [eventLocation, setEventLocation] = useState('');
   const [eventType, setEventType] = useState<'casual' | 'formal' | 'sport' | 'party'>('casual');
   const [eventDescription, setEventDescription] = useState('');
+  
+  // Date and Time picker states
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const currentMonth = selectedDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   const currentYear = selectedDate.getFullYear();
@@ -149,24 +154,43 @@ export default function CalendarScreen() {
   const resetForm = () => {
     setSelectedIcon('utensils');
     setEventTitle('');
-    setEventDate('');
-    setEventTime('');
+    setEventDate(new Date());
+    setEventTime(new Date());
     setEventLocation('');
     setEventType('casual');
     setEventDescription('');
   };
 
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
   const handleCreateEvent = () => {
-    if (!eventTitle || !eventDate || !eventTime) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+    if (!eventTitle) {
+      Alert.alert('Erreur', 'Veuillez remplir le nom de l\'événement');
       return;
     }
+
+    const formattedDate = eventDate.toISOString().split('T')[0];
+    const formattedTime = formatTime(eventTime);
 
     const newEvent: Event = {
       id: Date.now().toString(),
       title: eventTitle,
-      date: eventDate,
-      time: eventTime,
+      date: formattedDate,
+      time: formattedTime,
       location: eventLocation,
       type: eventType,
       icon: selectedIcon,
@@ -269,6 +293,217 @@ export default function CalendarScreen() {
           );
         })}
       </View>
+    );
+  };
+
+  // Date Picker Component
+  const renderDatePicker = () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const years = Array.from({ length: 10 }, (_, i) => currentYear + i - 2);
+    const months = [
+      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    ];
+    const daysInSelectedMonth = new Date(eventDate.getFullYear(), eventDate.getMonth() + 1, 0).getDate();
+    const days = Array.from({ length: daysInSelectedMonth }, (_, i) => i + 1);
+
+    return (
+      <Modal
+        visible={showDatePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDatePicker(false)}
+      >
+        <TouchableOpacity 
+          style={styles.pickerOverlay}
+          activeOpacity={1}
+          onPress={() => setShowDatePicker(false)}
+        >
+          <View style={styles.pickerModal}>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerTitle}>Sélectionner une date</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.pickerDone}>Terminé</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.pickerContent}>
+              {/* Day Picker */}
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerColumnTitle}>Jour</Text>
+                <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
+                  {days.map((day) => (
+                    <TouchableOpacity
+                      key={day}
+                      style={[
+                        styles.pickerItem,
+                        eventDate.getDate() === day && styles.pickerItemSelected
+                      ]}
+                      onPress={() => {
+                        const newDate = new Date(eventDate);
+                        newDate.setDate(day);
+                        setEventDate(newDate);
+                      }}
+                    >
+                      <Text style={[
+                        styles.pickerItemText,
+                        eventDate.getDate() === day && styles.pickerItemTextSelected
+                      ]}>
+                        {day}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Month Picker */}
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerColumnTitle}>Mois</Text>
+                <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
+                  {months.map((month, index) => (
+                    <TouchableOpacity
+                      key={month}
+                      style={[
+                        styles.pickerItem,
+                        eventDate.getMonth() === index && styles.pickerItemSelected
+                      ]}
+                      onPress={() => {
+                        const newDate = new Date(eventDate);
+                        newDate.setMonth(index);
+                        setEventDate(newDate);
+                      }}
+                    >
+                      <Text style={[
+                        styles.pickerItemText,
+                        eventDate.getMonth() === index && styles.pickerItemTextSelected
+                      ]}>
+                        {month}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Year Picker */}
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerColumnTitle}>Année</Text>
+                <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
+                  {years.map((year) => (
+                    <TouchableOpacity
+                      key={year}
+                      style={[
+                        styles.pickerItem,
+                        eventDate.getFullYear() === year && styles.pickerItemSelected
+                      ]}
+                      onPress={() => {
+                        const newDate = new Date(eventDate);
+                        newDate.setFullYear(year);
+                        setEventDate(newDate);
+                      }}
+                    >
+                      <Text style={[
+                        styles.pickerItemText,
+                        eventDate.getFullYear() === year && styles.pickerItemTextSelected
+                      ]}>
+                        {year}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    );
+  };
+
+  // Time Picker Component
+  const renderTimePicker = () => {
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const minutes = Array.from({ length: 60 }, (_, i) => i);
+
+    return (
+      <Modal
+        visible={showTimePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowTimePicker(false)}
+      >
+        <TouchableOpacity 
+          style={styles.pickerOverlay}
+          activeOpacity={1}
+          onPress={() => setShowTimePicker(false)}
+        >
+          <View style={styles.pickerModal}>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerTitle}>Sélectionner l'heure</Text>
+              <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                <Text style={styles.pickerDone}>Terminé</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.pickerContent}>
+              {/* Hour Picker */}
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerColumnTitle}>Heure</Text>
+                <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
+                  {hours.map((hour) => (
+                    <TouchableOpacity
+                      key={hour}
+                      style={[
+                        styles.pickerItem,
+                        eventTime.getHours() === hour && styles.pickerItemSelected
+                      ]}
+                      onPress={() => {
+                        const newTime = new Date(eventTime);
+                        newTime.setHours(hour);
+                        setEventTime(newTime);
+                      }}
+                    >
+                      <Text style={[
+                        styles.pickerItemText,
+                        eventTime.getHours() === hour && styles.pickerItemTextSelected
+                      ]}>
+                        {hour.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Minute Picker */}
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerColumnTitle}>Minutes</Text>
+                <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
+                  {minutes.filter(m => m % 5 === 0).map((minute) => (
+                    <TouchableOpacity
+                      key={minute}
+                      style={[
+                        styles.pickerItem,
+                        Math.floor(eventTime.getMinutes() / 5) * 5 === minute && styles.pickerItemSelected
+                      ]}
+                      onPress={() => {
+                        const newTime = new Date(eventTime);
+                        newTime.setMinutes(minute);
+                        setEventTime(newTime);
+                      }}
+                    >
+                      <Text style={[
+                        styles.pickerItemText,
+                        Math.floor(eventTime.getMinutes() / 5) * 5 === minute && styles.pickerItemTextSelected
+                      ]}>
+                        {minute.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     );
   };
 
@@ -418,24 +653,29 @@ export default function CalendarScreen() {
               />
             </View>
 
-            {/* Date and Time */}
+            {/* Date and Time - Updated with Pickers */}
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>Date et heure</Text>
               <View style={styles.dateTimeRow}>
-                <TextInput
-                  style={[styles.textInput, styles.dateInput]}
-                  placeholder="jj/mm/aaaa"
-                  value={eventDate}
-                  onChangeText={setEventDate}
-                  placeholderTextColor="#8E8E93"
-                />
-                <TextInput
-                  style={[styles.textInput, styles.timeInput]}
-                  placeholder="--:--"
-                  value={eventTime}
-                  onChangeText={setEventTime}
-                  placeholderTextColor="#8E8E93"
-                />
+                <TouchableOpacity
+                  style={[styles.pickerButton, styles.datePickerButton]}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <CalendarIcon size={20} color="#8E8E93" style={styles.pickerIcon} />
+                  <Text style={styles.pickerButtonText}>
+                    {formatDate(eventDate)}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.pickerButton, styles.timePickerButton]}
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Clock size={20} color="#8E8E93" style={styles.pickerIcon} />
+                  <Text style={styles.pickerButtonText}>
+                    {formatTime(eventTime)}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -512,6 +752,10 @@ export default function CalendarScreen() {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Date and Time Pickers */}
+      {renderDatePicker()}
+      {renderTimePicker()}
     </SafeAreaView>
   );
 }
@@ -812,16 +1056,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E2E1',
   },
+  
+  // Date and Time Pickers - Updated Styles
   dateTimeRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  dateInput: {
+  pickerButton: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  datePickerButton: {
     flex: 2,
   },
-  timeInput: {
+  timePickerButton: {
     flex: 1,
   },
+  pickerIcon: {
+    marginRight: 4,
+  },
+  pickerButtonText: {
+    fontSize: 16,
+    color: '#1C1C1E',
+    fontWeight: '500',
+  },
+
   locationInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -895,6 +1161,83 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
+    fontWeight: '600',
+  },
+
+  // Date and Time Picker Modal Styles
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    marginHorizontal: 20,
+    maxHeight: '70%',
+    width: width - 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E2E1',
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1C1C1E',
+  },
+  pickerDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#EE7518',
+  },
+  pickerContent: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 20,
+  },
+  pickerColumn: {
+    flex: 1,
+  },
+  pickerColumnTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8E8E93',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  pickerScroll: {
+    maxHeight: 200,
+  },
+  pickerItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  pickerItemSelected: {
+    backgroundColor: '#EE7518',
+  },
+  pickerItemText: {
+    fontSize: 16,
+    color: '#1C1C1E',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  pickerItemTextSelected: {
+    color: '#FFFFFF',
     fontWeight: '600',
   },
 });
