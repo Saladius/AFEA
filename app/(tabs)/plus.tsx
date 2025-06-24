@@ -284,12 +284,16 @@ export default function AddItemScreen() {
       let errorMessage = 'Une erreur est survenue lors de l\'ajout de l\'article.';
       
       if (error instanceof Error) {
-        if (error.message.includes('storage')) {
-          errorMessage = 'Erreur lors du téléchargement de l\'image. Vérifiez votre connexion.';
+        if (error.message.includes('bucket') || error.message.includes('Bucket')) {
+          errorMessage = error.message + '\n\nPour résoudre ce problème :\n1. Connectez-vous à votre tableau de bord Supabase\n2. Allez dans Storage\n3. Créez un nouveau bucket nommé "clothes-images"\n4. Configurez-le comme public';
+        } else if (error.message.includes('storage')) {
+          errorMessage = 'Erreur lors du téléchargement de l\'image. Vérifiez votre connexion et la configuration du stockage.';
         } else if (error.message.includes('database') || error.message.includes('supabase')) {
           errorMessage = 'Erreur de base de données. Veuillez réessayer.';
         } else if (error.message.includes('auth')) {
           errorMessage = 'Erreur d\'authentification. Veuillez vous reconnecter.';
+        } else {
+          errorMessage = error.message;
         }
       }
       

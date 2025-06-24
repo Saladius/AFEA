@@ -81,7 +81,20 @@ The app uses Supabase PostgreSQL with the following main tables:
 - `clothes`: Clothing items with attributes and image URLs  
 - `outfit_suggestions`: AI-generated outfit recommendations
 
-### 3. Installation & Development
+### 3. Storage Setup
+
+**CRITICAL**: You must create the storage bucket manually in your Supabase dashboard:
+
+1. Go to your Supabase project dashboard
+2. Navigate to **Storage** in the left sidebar
+3. Click **"New bucket"**
+4. Create a bucket named exactly: `clothes-images`
+5. Configure the bucket settings:
+   - **Public bucket**: Enable this for public access to images
+   - **File size limit**: Set to 5MB (5242880 bytes)
+   - **Allowed MIME types**: `image/jpeg`, `image/png`, `image/webp`
+
+### 4. Installation & Development
 
 ```bash
 # Install dependencies
@@ -91,7 +104,7 @@ npm install
 npm run dev
 ```
 
-### 4. Cloud Functions Setup
+### 5. Cloud Functions Setup
 
 The application requires two Google Cloud Functions:
 
@@ -168,8 +181,32 @@ npm run build:web
 
 ### Supabase Configuration
 - Enable Row Level Security (RLS) on all tables
-- Configure storage bucket policies
+- Configure storage bucket policies (see Storage Setup above)
 - Set up authentication providers
+
+## Troubleshooting
+
+### Common Issues
+
+#### "Bucket not found" Error
+This error occurs when the `clothes-images` storage bucket doesn't exist in your Supabase project.
+
+**Solution:**
+1. Go to your Supabase dashboard
+2. Navigate to Storage
+3. Create a new bucket named `clothes-images`
+4. Enable public access if needed
+5. Set appropriate file size limits and MIME types
+
+#### Storage Upload Errors
+- Verify bucket permissions are correctly configured
+- Check that the bucket is set to public if you need public access to images
+- Ensure file size limits are appropriate (recommended: 5MB)
+
+#### Authentication Issues
+- Verify your Supabase URL and anonymous key in `.env`
+- Check that authentication is enabled in your Supabase project
+- Ensure RLS policies are properly configured
 
 ## Future Enhancements
 

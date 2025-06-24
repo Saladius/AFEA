@@ -7,6 +7,23 @@ class StorageService {
     try {
       console.log('🔄 Starting image upload:', { uri, fileName });
       
+      // Check if bucket exists first
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.error('❌ Error listing buckets:', bucketsError);
+        throw new Error(`Erreur lors de la vérification des buckets: ${bucketsError.message}`);
+      }
+
+      const bucketExists = buckets?.some(bucket => bucket.name === this.bucketName);
+      
+      if (!bucketExists) {
+        console.error('❌ Bucket not found:', this.bucketName);
+        throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas. Veuillez créer ce bucket dans votre tableau de bord Supabase (Storage > Nouveau bucket > "${this.bucketName}").`);
+      }
+
+      console.log('✅ Bucket exists, proceeding with upload');
+      
       // For web platform, handle differently
       if (typeof window !== 'undefined') {
         // Web platform - convert URI to blob
@@ -24,7 +41,10 @@ class StorageService {
 
         if (error) {
           console.error('❌ Upload error:', error);
-          throw error;
+          if (error.message.includes('Bucket not found')) {
+            throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas. Veuillez créer ce bucket dans votre tableau de bord Supabase.`);
+          }
+          throw new Error(`Erreur lors du téléchargement: ${error.message}`);
         }
 
         console.log('✅ Upload successful:', data);
@@ -50,7 +70,10 @@ class StorageService {
           });
 
         if (error) {
-          throw error;
+          if (error.message.includes('Bucket not found')) {
+            throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas. Veuillez créer ce bucket dans votre tableau de bord Supabase.`);
+          }
+          throw new Error(`Erreur lors du téléchargement: ${error.message}`);
         }
 
         const { data: publicUrlData } = supabase.storage
@@ -72,6 +95,9 @@ class StorageService {
         .remove([fileName]);
 
       if (error) {
+        if (error.message.includes('Bucket not found')) {
+          throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas.`);
+        }
         throw error;
       }
     } catch (error) {
@@ -84,6 +110,38 @@ class StorageService {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(7);
     return `${userId}/${timestamp}-${random}.jpg`;
+  }
+
+  // Helper method to create bucket if it doesn't exist (for development)
+  async ensureBucketExists(): Promise<void> {
+    try {
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        throw bucketsError;
+      }
+
+      const bucketExists = buckets?.some(bucket => bucket.name === this.bucketName);
+      
+      if (!bucketExists) {
+        console.log('🔧 Creating bucket:', this.bucketName);
+        const { error: createError } = await supabase.storage.createBucket(this.bucketName, {
+          public: true,
+          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+          fileSizeLimit: 5242880 // 5MB
+        });
+
+        if (createError) {
+          console.error('❌ Error creating bucket:', createError);
+          throw createError;
+        }
+
+        console.log('✅ Bucket created successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error ensuring bucket exists:', error);
+      throw error;
+    }
   }
 }
 
