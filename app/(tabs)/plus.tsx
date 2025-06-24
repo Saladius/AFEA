@@ -14,13 +14,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Camera, Image as ImageIcon, Lightbulb, Contrast, Sparkles, Check, ChevronRight, CreditCard as Edit3, Plus } from 'lucide-react-native';
+import { ArrowLeft, Camera, Image as ImageIcon, Lightbulb, Contrast, Sparkles, Check, ChevronRight, Edit3, Plus } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
   withSpring,
   withTiming,
-  interpolate,
   withRepeat,
   withSequence
 } from 'react-native-reanimated';
@@ -50,8 +49,8 @@ interface DetectedTag {
 
 export default function AddItemScreen() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState<Step>('tags'); // Start at tags step for demo
-  const [selectedImage, setSelectedImage] = useState<string | null>('https://images.pexels.com/photos/8532616/pexels-photo-8532616.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1');
+  const [currentStep, setCurrentStep] = useState<Step>('photo');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -64,7 +63,7 @@ export default function AddItemScreen() {
     { label: 'Couleur', value: 'Bleu', editable: true },
     { label: 'Matière', value: 'Coton', editable: true },
     { label: 'Saison', value: 'Printemps, Été', editable: true },
-    { label: 'Marque', value: '', editable: true },
+    { label: 'Marque', value: 'Nike', editable: true },
     { label: 'Ajouté le', value: '19 juin 2023', editable: false },
   ]);
 
@@ -94,6 +93,9 @@ export default function AddItemScreen() {
             clearInterval(interval);
             setIsProcessing(false);
             pulseValue.value = withTiming(1, { duration: 300 });
+            setTimeout(() => {
+              setCurrentStep('tags');
+            }, 500);
             return 100;
           }
           return prev + 2;
@@ -172,17 +174,7 @@ export default function AddItemScreen() {
     const nextStepIndex = currentStepIndex + 1;
     if (nextStepIndex < steps.length) {
       const nextStep = steps[nextStepIndex].id;
-      
-      if (nextStep === 'tags') {
-        setIsProcessing(true);
-        // Simulate AI processing
-        setTimeout(() => {
-          setIsProcessing(false);
-          setCurrentStep(nextStep);
-        }, 2000);
-      } else {
-        setCurrentStep(nextStep);
-      }
+      setCurrentStep(nextStep);
     }
   };
 
@@ -232,7 +224,7 @@ export default function AddItemScreen() {
               index === currentStepIndex && styles.stepCircleCurrent
             ]}>
               {index < currentStepIndex ? (
-                <Check size={16} color="#FFFFFF" />
+                <Check size={12} color="#FFFFFF" />
               ) : (
                 <Text style={[
                   styles.stepNumber,
@@ -262,7 +254,7 @@ export default function AddItemScreen() {
         ) : (
           <View style={styles.photoPlaceholder}>
             <View style={styles.cameraIconContainer}>
-              <Camera size={48} color="#EE7518" />
+              <Camera size={40} color="#EE7518" />
             </View>
             <Text style={styles.photoTitle}>Prendre une photo</Text>
             <Text style={styles.photoSubtitle}>
@@ -277,7 +269,7 @@ export default function AddItemScreen() {
           style={styles.primaryButton}
           onPress={() => handleImagePicker(true)}
         >
-          <Camera size={20} color="#FFFFFF" />
+          <Camera size={18} color="#FFFFFF" />
           <Text style={styles.primaryButtonText}>Appareil photo</Text>
         </TouchableOpacity>
 
@@ -285,7 +277,7 @@ export default function AddItemScreen() {
           style={styles.secondaryButton}
           onPress={() => handleImagePicker(false)}
         >
-          <ImageIcon size={20} color="#1C1C1E" />
+          <ImageIcon size={18} color="#1C1C1E" />
           <Text style={styles.secondaryButtonText}>Galerie</Text>
         </TouchableOpacity>
       </View>
@@ -295,7 +287,7 @@ export default function AddItemScreen() {
         
         <View style={styles.tipItem}>
           <View style={styles.tipIcon}>
-            <Lightbulb size={20} color="#EE7518" />
+            <Lightbulb size={18} color="#EE7518" />
           </View>
           <View style={styles.tipContent}>
             <Text style={styles.tipTitle}>Bonne luminosité</Text>
@@ -307,7 +299,7 @@ export default function AddItemScreen() {
 
         <View style={styles.tipItem}>
           <View style={styles.tipIcon}>
-            <Contrast size={20} color="#EE7518" />
+            <Contrast size={18} color="#EE7518" />
           </View>
           <View style={styles.tipContent}>
             <Text style={styles.tipTitle}>Fond contrasté</Text>
@@ -353,20 +345,10 @@ export default function AddItemScreen() {
       
       {!isProcessing && (
         <View style={styles.cropInstructions}>
-          <Text style={styles.instructionTitle}>Découpage en cours</Text>
+          <Text style={styles.instructionTitle}>Découpage terminé</Text>
           <Text style={styles.instructionText}>
-            Notre IA supprime l'arrière-plan de votre photo
+            Notre IA a supprimé l'arrière-plan de votre photo
           </Text>
-          
-          {/* Warning message */}
-          <View style={styles.warningContainer}>
-            <View style={styles.warningIcon}>
-              <Text style={styles.warningEmoji}>⚠️</Text>
-            </View>
-            <Text style={styles.warningText}>
-              Le découpage automatique peut prendre quelques secondes selon la complexité de l'image.
-            </Text>
-          </View>
         </View>
       )}
     </View>
@@ -415,7 +397,7 @@ export default function AddItemScreen() {
                     {tag.value || (tag.label === 'Marque' ? 'Ajouter une marque' : '')}
                   </Text>
                   {tag.editable && (
-                    <Edit3 size={16} color="#8E8E93" />
+                    <Edit3 size={14} color="#8E8E93" />
                   )}
                 </TouchableOpacity>
               )}
@@ -427,7 +409,7 @@ export default function AddItemScreen() {
       {/* Success Message */}
       <View style={styles.successMessage}>
         <View style={styles.successIcon}>
-          <Check size={20} color="#10B981" />
+          <Check size={18} color="#10B981" />
         </View>
         <View style={styles.successContent}>
           <Text style={styles.successTitle}>Prêt à être ajouté</Text>
@@ -450,7 +432,7 @@ export default function AddItemScreen() {
         
         <View style={styles.itemDetails}>
           <Text style={styles.itemTitle}>T-shirt bleu</Text>
-          <Text style={styles.itemSubtitle}>Coton • Décontracté • Taille M</Text>
+          <Text style={styles.itemSubtitle}>Coton • Décontracté • Nike</Text>
         </View>
 
         <View style={styles.detailsList}>
@@ -467,8 +449,12 @@ export default function AddItemScreen() {
             <Text style={styles.detailValue}>Coton</Text>
           </View>
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Style</Text>
-            <Text style={styles.detailValue}>Décontracté</Text>
+            <Text style={styles.detailLabel}>Marque</Text>
+            <Text style={styles.detailValue}>Nike</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Saison</Text>
+            <Text style={styles.detailValue}>Printemps, Été</Text>
           </View>
         </View>
       </View>
@@ -519,7 +505,7 @@ export default function AddItemScreen() {
             }
           }}
         >
-          <ArrowLeft size={24} color="#1C1C1E" />
+          <ArrowLeft size={20} color="#1C1C1E" />
         </TouchableOpacity>
         
         <Text style={styles.headerTitle}>Ajouter un vêtement</Text>
@@ -549,9 +535,9 @@ export default function AddItemScreen() {
               
               <TouchableOpacity
                 style={styles.addToWardrobeButton}
-                onPress={handleConfirm}
+                onPress={() => setCurrentStep('confirm')}
               >
-                <Text style={styles.addToWardrobeButtonText}>Ajouter à ma garde-robe</Text>
+                <Text style={styles.addToWardrobeButtonText}>Continuer</Text>
               </TouchableOpacity>
             </View>
           ) : currentStep === 'crop' ? (
@@ -587,7 +573,7 @@ export default function AddItemScreen() {
               disabled={!canProceed()}
             >
               <Text style={styles.continueButtonText}>Continuer</Text>
-              <ChevronRight size={20} color="#FFFFFF" />
+              <ChevronRight size={18} color="#FFFFFF" />
             </TouchableOpacity>
           )}
         </View>
@@ -604,41 +590,41 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E2E1',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F8F9FA',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
     textAlign: 'center',
-    marginHorizontal: 16,
+    marginHorizontal: 12,
   },
   headerSpacer: {
-    width: 40,
+    width: 36,
   },
   stepIndicator: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 24,
-    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   progressBarContainer: {
-    height: 4,
+    height: 3,
     backgroundColor: '#E5E2E1',
     borderRadius: 2,
-    marginBottom: 24,
+    marginBottom: 16,
     overflow: 'hidden',
   },
   progressBarBackground: {
@@ -663,13 +649,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#E5E2E1',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   stepCircleActive: {
     backgroundColor: '#EE7518',
@@ -677,13 +663,13 @@ const styles = StyleSheet.create({
   stepCircleCurrent: {
     backgroundColor: '#EE7518',
     shadowColor: '#EE7518',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 4,
     elevation: 4,
   },
   stepNumber: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#8E8E93',
   },
@@ -691,7 +677,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   stepTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     color: '#8E8E93',
     textAlign: 'center',
@@ -705,14 +691,14 @@ const styles = StyleSheet.create({
   },
   stepContent: {
     flex: 1,
-    padding: 24,
+    padding: 20,
   },
   photoContainer: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   photoPlaceholder: {
-    height: 300,
-    borderRadius: 20,
+    height: 240,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: '#E5E2E1',
     borderStyle: 'dashed',
@@ -722,131 +708,132 @@ const styles = StyleSheet.create({
   },
   selectedImage: {
     width: '100%',
-    height: 300,
-    borderRadius: 20,
+    height: 240,
+    borderRadius: 16,
   },
   cameraIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#FEF3E2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   photoTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   photoSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#8E8E93',
     textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 32,
+    lineHeight: 20,
+    paddingHorizontal: 24,
   },
   actionButtons: {
-    gap: 16,
-    marginBottom: 32,
+    gap: 12,
+    marginBottom: 24,
   },
   primaryButton: {
     backgroundColor: '#EE7518',
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
     shadowColor: '#EE7518',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 4,
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   secondaryButton: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    borderWidth: 2,
+    gap: 8,
+    borderWidth: 1,
     borderColor: '#E5E2E1',
   },
   secondaryButtonText: {
     color: '#1C1C1E',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   tipsSection: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 16,
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 3,
   },
   tipsTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   tipItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   tipIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#FEF3E2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   tipContent: {
     flex: 1,
   },
   tipTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   tipDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#8E8E93',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   cropContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 20,
   },
   imagePreview: {
     position: 'relative',
-    width: width - 48,
-    height: (width - 48) * 1.2,
-    borderRadius: 20,
+    width: width - 40,
+    height: (width - 40) * 1.2,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowRadius: 12,
+    elevation: 6,
   },
   cropImage: {
     width: '100%',
@@ -867,7 +854,6 @@ const styles = StyleSheet.create({
     height: '30%',
     backgroundColor: '#FF0000',
     opacity: 0.7,
-    // Create checkered pattern effect
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
@@ -877,21 +863,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    padding: 20,
+    padding: 16,
   },
   processingContent: {
     alignItems: 'center',
   },
   processingTitle: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: 'center',
   },
   progressContainer: {
     width: '100%',
-    height: 4,
+    height: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 2,
     overflow: 'hidden',
@@ -908,107 +894,85 @@ const styles = StyleSheet.create({
   },
   cropInstructions: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 24,
   },
   instructionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   instructionText: {
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  warningContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FEF3E2',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'flex-start',
-    maxWidth: width - 80,
-  },
-  warningIcon: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  warningEmoji: {
-    fontSize: 16,
-  },
-  warningText: {
-    flex: 1,
     fontSize: 14,
     color: '#8E8E93',
+    textAlign: 'center',
     lineHeight: 20,
   },
   
   // Tags Step Styles
   clothingPreview: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   previewImageContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 16,
+    width: 100,
+    height: 100,
+    borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 12,
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 3,
   },
   previewImage: {
     width: '100%',
     height: '100%',
   },
   clothingTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#1C1C1E',
     textAlign: 'center',
   },
   tagsContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 3,
   },
   tagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
   },
   tagLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#8E8E93',
     fontWeight: '500',
-    width: 80,
+    width: 70,
   },
   tagValueContainer: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 12,
   },
   tagValueButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   tagValue: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#1C1C1E',
     fontWeight: '600',
     flex: 1,
@@ -1021,82 +985,59 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   tagInput: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#1C1C1E',
     fontWeight: '600',
     borderBottomWidth: 1,
     borderBottomColor: '#EE7518',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   successMessage: {
     flexDirection: 'row',
     backgroundColor: '#F0FDF4',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'flex-start',
     borderWidth: 1,
     borderColor: '#BBF7D0',
   },
   successIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#10B981',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   successContent: {
     flex: 1,
   },
   successTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#065F46',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   successText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#047857',
-    lineHeight: 20,
-  },
-
-  processingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-  },
-  processingAnimation: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#FEF3E2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 32,
-  },
-  processingSubtitle: {
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 32,
+    lineHeight: 18,
   },
   confirmContainer: {
     alignItems: 'center',
   },
   finalPreview: {
-    width: 200,
-    height: 200,
-    borderRadius: 20,
+    width: 160,
+    height: 160,
+    borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 24,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowRadius: 12,
+    elevation: 6,
   },
   finalImage: {
     width: '100%',
@@ -1104,137 +1045,137 @@ const styles = StyleSheet.create({
   },
   itemDetails: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   itemTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1C1C1E',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   itemSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#8E8E93',
     textAlign: 'center',
   },
   detailsList: {
     width: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 16,
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 3,
   },
   detailItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
   },
   detailLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#8E8E93',
     fontWeight: '500',
   },
   detailValue: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#1C1C1E',
     fontWeight: '600',
   },
   bottomActions: {
-    padding: 24,
+    padding: 20,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E2E1',
   },
   tagsActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   modifyButton: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#E5E2E1',
   },
   modifyButtonText: {
     color: '#8E8E93',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   addToWardrobeButton: {
     flex: 2,
     backgroundColor: '#EE7518',
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
     shadowColor: '#EE7518',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 4,
   },
   addToWardrobeButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   cropActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   cancelButton: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#E5E2E1',
   },
   cancelButtonText: {
     color: '#8E8E93',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   validateButton: {
     flex: 2,
     backgroundColor: '#EE7518',
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
     shadowColor: '#EE7518',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 4,
   },
   validateButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   continueButton: {
     backgroundColor: '#EE7518',
-    borderRadius: 16,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     shadowColor: '#EE7518',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 4,
   },
   continueButtonDisabled: {
     backgroundColor: '#E5E2E1',
@@ -1243,7 +1184,7 @@ const styles = StyleSheet.create({
   },
   continueButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   confirmButton: {
