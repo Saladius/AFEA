@@ -6,119 +6,102 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  Image,
-  SafeAreaView,
+  RefreshControl,
 } from 'react-native';
-import { Search, MoreVertical } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/hooks/useAuth';
+import { useClothes } from '@/hooks/useClothes';
+import { useRouter } from 'expo-router';
+import { Plus, Grid3x3 as Grid, List, Search, Filter, Shirt } from 'lucide-react-native';
+import ClothingCard from '@/components/ClothingCard';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 48) / 2; // 24px padding on each side
-
-interface ClothingItem {
-  id: string;
-  name: string;
-  category: string;
-  color: string;
-  image: string;
-  style: string;
-}
-
-const dummyClothes: ClothingItem[] = [
-  {
-    id: '1',
-    name: 'T-shirt blanc',
-    category: 'Hauts',
-    color: 'white',
-    image: 'https://images.pexels.com/photos/1040945/pexels-photo-1040945.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    style: 'Casual'
-  },
-  {
-    id: '2',
-    name: 'Jean bleu',
-    category: 'Bas',
-    color: 'blue',
-    image: 'https://images.pexels.com/photos/1598507/pexels-photo-1598507.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    style: 'Casual'
-  },
-  {
-    id: '3',
-    name: 'Baskets blanches',
-    category: 'Chaussures',
-    color: 'white',
-    image: 'https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    style: 'Sport'
-  },
-  {
-    id: '4',
-    name: 'Montre classique',
-    category: 'Accessoires',
-    color: 'black',
-    image: 'https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    style: 'Formel'
-  },
-  {
-    id: '5',
-    name: 'Chemise rouge',
-    category: 'Hauts',
-    color: 'red',
-    image: 'https://images.pexels.com/photos/1926769/pexels-photo-1926769.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    style: 'Casual'
-  },
-  {
-    id: '6',
-    name: 'Pantalon noir',
-    category: 'Bas',
-    color: 'black',
-    image: 'https://images.pexels.com/photos/1598508/pexels-photo-1598508.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1',
-    style: 'Formel'
-  }
-];
-
-const categories = ['Tous', 'Hauts', 'Bas', 'Chaussures', 'Accessoires'];
-
-const colors = [
-  { name: 'all', color: '#FFFFFF', border: '#E5E2E1' },
-  { name: 'black', color: '#000000' },
-  { name: 'blue', color: '#3B82F6' },
-  { name: 'red', color: '#EF4444' },
-  { name: 'green', color: '#10B981' },
-  { name: 'yellow', color: '#F59E0B' },
-  { name: 'purple', color: '#8B5CF6' },
-  { name: 'pink', color: '#EC4899' },
-  { name: 'gray', color: '#6B7280' },
-];
 
 export default function WardrobeScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('Tous');
-  const [selectedColor, setSelectedColor] = useState('all');
+  const { user } = useAuth();
+  const { clothes, loading, fetchClothes } = useClothes();
+  const router = useRouter();
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filteredClothes = dummyClothes.filter(item => {
-    const categoryMatch = selectedCategory === 'Tous' || item.category === selectedCategory;
-    const colorMatch = selectedColor === 'all' || item.color === selectedColor;
-    return categoryMatch && colorMatch;
-  });
+  const filters = [
+    { key: 'all', label: 'Tout', count: clothes.length },
+    { key: 'top', label: 'Hauts', count: clothes.filter(c => c.type === 'top').length },
+    { key: 'bottom', label: 'Bas', count: clothes.filter(c => c.type === 'bottom').length },
+    { key: 'shoes', label: 'Chaussures', count: clothes.filter(c => c.type === 'shoes').length },
+    { key: 'accessories', label: 'Accessoires', count: clothes.filter(c => c.type === 'accessories').length },
+  ];
 
-  const getStyleColor = (style: string) => {
-    switch (style) {
-      case 'Casual':
-        return '#3B82F6';
-      case 'Sport':
-        return '#10B981';
-      case 'Formel':
-        return '#1F2937';
-      default:
-        return '#6B7280';
+  const filteredClothes = selectedFilter === 'all' 
+    ? clothes 
+    : clothes.filter(item => item.type === selectedFilter);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchClothes();
+    } catch (error) {
+      console.error('Error refreshing clothes:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Vous devez être connecté pour voir votre garde-robe</Text>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.replace('/auth')}
+          >
+            <Text style={styles.primaryButtonText}>Se connecter</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#EE7518"
+            colors={['#EE7518']}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Ma garde-robe</Text>
-          <TouchableOpacity style={styles.searchButton}>
-            <Search size={24} color="#1C1C1E" />
+          <View>
+            <Text style={styles.title}>👕 Ma garde-robe</Text>
+            <Text style={styles.subtitle}>
+              {clothes.length} {clothes.length <= 1 ? 'article' : 'articles'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push('/(tabs)/plus')}
+          >
+            <Plus size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Search and Filters */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchBar}>
+            <Search size={20} color="#8E8E93" />
+            <Text style={styles.searchPlaceholder}>Rechercher dans ma garde-robe...</Text>
+          </View>
+          <TouchableOpacity style={styles.filterButton}>
+            <Filter size={20} color="#EE7518" />
           </TouchableOpacity>
         </View>
 
@@ -126,95 +109,102 @@ export default function WardrobeScreen() {
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
-          style={styles.categoryFilters}
-          contentContainerStyle={styles.categoryFiltersContent}
+          style={styles.filtersScroll}
+          contentContainerStyle={styles.filtersContent}
         >
-          {categories.map((category) => (
+          {filters.map((filter) => (
             <TouchableOpacity
-              key={category}
+              key={filter.key}
               style={[
-                styles.categoryButton,
-                selectedCategory === category && styles.categoryButtonActive
+                styles.filterChip,
+                selectedFilter === filter.key && styles.filterChipActive
               ]}
-              onPress={() => setSelectedCategory(category)}
+              onPress={() => setSelectedFilter(filter.key)}
             >
               <Text style={[
-                styles.categoryButtonText,
-                selectedCategory === category && styles.categoryButtonTextActive
+                styles.filterChipText,
+                selectedFilter === filter.key && styles.filterChipTextActive
               ]}>
-                {category}
+                {filter.label} ({filter.count})
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Color Filters */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.colorFilters}
-          contentContainerStyle={styles.colorFiltersContent}
-        >
-          {colors.map((colorItem) => (
+        {/* View Mode Toggle */}
+        <View style={styles.viewModeSection}>
+          <Text style={styles.resultsText}>
+            {filteredClothes.length} {filteredClothes.length <= 1 ? 'résultat' : 'résultats'}
+          </Text>
+          <View style={styles.viewModeToggle}>
             <TouchableOpacity
-              key={colorItem.name}
               style={[
-                styles.colorButton,
-                { backgroundColor: colorItem.color },
-                colorItem.border && { borderColor: colorItem.border, borderWidth: 1 },
-                selectedColor === colorItem.name && styles.colorButtonActive
+                styles.viewModeButton,
+                viewMode === 'grid' && styles.viewModeButtonActive
               ]}
-              onPress={() => setSelectedColor(colorItem.name)}
+              onPress={() => setViewMode('grid')}
             >
-              {colorItem.name === 'all' && (
-                <Text style={styles.colorButtonCheck}>✓</Text>
-              )}
-              {selectedColor === colorItem.name && colorItem.name !== 'all' && (
-                <Text style={styles.colorButtonCheck}>✓</Text>
-              )}
+              <Grid size={18} color={viewMode === 'grid' ? '#FFFFFF' : '#8E8E93'} />
             </TouchableOpacity>
-          ))}
-          
-          {/* Add Color Button */}
-          <TouchableOpacity style={styles.addColorButton}>
-            <Text style={styles.addColorButtonText}>+</Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* Clothing Grid */}
-        <View style={styles.clothingGrid}>
-          {filteredClothes.map((item) => (
-            <View key={item.id} style={styles.clothingCard}>
-              <View style={styles.imageContainer}>
-                <Image source={{ uri: item.image }} style={styles.clothingImage} />
-              </View>
-              
-              <View style={styles.clothingInfo}>
-                <Text style={styles.clothingName}>{item.name}</Text>
-                <View style={styles.styleContainer}>
-                  <View style={[
-                    styles.styleDot,
-                    { backgroundColor: getStyleColor(item.style) }
-                  ]} />
-                  <Text style={styles.styleText}>{item.style}</Text>
-                </View>
-              </View>
-              
-              <TouchableOpacity style={styles.moreButton}>
-                <MoreVertical size={16} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-          ))}
+            <TouchableOpacity
+              style={[
+                styles.viewModeButton,
+                viewMode === 'list' && styles.viewModeButtonActive
+              ]}
+              onPress={() => setViewMode('list')}
+            >
+              <List size={18} color={viewMode === 'list' ? '#FFFFFF' : '#8E8E93'} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Add some bottom padding for the floating action button */}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
+        {/* Loading State */}
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Chargement de votre garde-robe...</Text>
+          </View>
+        )}
 
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab}>
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+        {/* Content */}
+        {!loading && filteredClothes.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIcon}>
+              <Shirt size={48} color="#E5E2E1" />
+            </View>
+            <Text style={styles.emptyTitle}>
+              {selectedFilter === 'all' 
+                ? 'Aucun article pour le moment' 
+                : `Aucun ${filters.find(f => f.key === selectedFilter)?.label.toLowerCase()}`
+              }
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {selectedFilter === 'all' 
+                ? 'Ajoutez votre premier vêtement pour commencer'
+                : 'Essayez un autre filtre ou ajoutez de nouveaux articles'
+              }
+            </Text>
+            {selectedFilter === 'all' && (
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={() => router.push('/(tabs)/plus')}
+              >
+                <Plus size={20} color="#FFFFFF" />
+                <Text style={styles.emptyButtonText}>Ajouter un article</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : !loading && (
+          <View style={viewMode === 'grid' ? styles.grid : styles.list}>
+            {filteredClothes.map((item) => (
+              <ClothingCard
+                key={item.id}
+                item={item}
+                viewMode={viewMode}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -227,166 +217,49 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  primaryButton: {
+    backgroundColor: '#EE7518',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1C1C1E',
-  },
-  searchButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F8F9FA',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  
-  // Category Filters
-  categoryFilters: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-  },
-  categoryFiltersContent: {
-    paddingHorizontal: 24,
-  },
-  categoryButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#F8F9FA',
-    marginRight: 12,
-  },
-  categoryButtonActive: {
-    backgroundColor: '#EE7518',
-  },
-  categoryButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  categoryButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  
-  // Color Filters
-  colorFilters: {
-    backgroundColor: '#FFFFFF',
+    padding: 24,
     paddingBottom: 16,
   },
-  colorFiltersContent: {
-    paddingHorizontal: 24,
-  },
-  colorButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  colorButtonActive: {
-    borderWidth: 3,
-    borderColor: '#EE7518',
-  },
-  colorButtonCheck: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  addColorButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E5E2E1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addColorButtonText: {
-    color: '#6B7280',
-    fontSize: 20,
-    fontWeight: '300',
-  },
-  
-  // Clothing Grid
-  clothingGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    gap: 16,
-  },
-  clothingCard: {
-    width: cardWidth,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  imageContainer: {
-    width: '100%',
-    height: cardWidth * 0.8,
-    borderRadius: 12,
-    backgroundColor: '#F8F9FA',
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  clothingImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  clothingInfo: {
-    marginBottom: 8,
-  },
-  clothingName: {
-    fontSize: 16,
-    fontWeight: '600',
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1C1C1E',
     marginBottom: 4,
   },
-  styleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  subtitle: {
+    fontSize: 16,
+    color: '#8E8E93',
+    fontWeight: '500',
   },
-  styleDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  styleText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  moreButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  
-  // Floating Action Button
-  fab: {
-    position: 'absolute',
-    bottom: 100,
-    right: 24,
+  addButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -399,12 +272,175 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  fabText: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '300',
+  searchSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 20,
+    gap: 12,
   },
-  bottomPadding: {
-    height: 120,
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  searchPlaceholder: {
+    fontSize: 16,
+    color: '#8E8E93',
+  },
+  filterButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  filtersScroll: {
+    marginBottom: 20,
+  },
+  filtersContent: {
+    paddingHorizontal: 24,
+  },
+  filterChip: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  filterChipActive: {
+    backgroundColor: '#EE7518',
+    borderColor: '#EE7518',
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+  },
+  viewModeSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  resultsText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  viewModeToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  viewModeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewModeButtonActive: {
+    backgroundColor: '#EE7518',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 24,
+    gap: 16,
+    paddingBottom: 100,
+  },
+  list: {
+    paddingHorizontal: 24,
+    gap: 12,
+    paddingBottom: 100,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+    padding: 24,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  emptyButton: {
+    backgroundColor: '#EE7518',
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#EE7518',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  emptyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
