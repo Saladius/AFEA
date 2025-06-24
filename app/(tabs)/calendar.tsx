@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,11 +29,14 @@ import {
   GraduationCap,
   Plane,
   Shirt,
-  User
+  User,
+  Filter,
+  X,
+  RotateCcw
 } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
-import { EventType } from '@/types/database';
+import { EventType, EventStatus } from '@/types/database';
 
 const { width } = Dimensions.get('window');
 
@@ -53,6 +56,36 @@ const eventTypes = [
   { id: 'party', label: 'Soirée', icon: Music },
 ];
 
+const statusOptions = [
+  { id: 'all', label: 'Tous les statuts' },
+  { id: 'ready', label: 'Tenue prête' },
+  { id: 'preparing', label: 'À préparer' },
+  { id: 'generate', label: 'Générer tenue' },
+];
+
+const typeOptions = [
+  { id: 'all', label: 'Tous les types' },
+  { id: 'casual', label: 'Décontracté' },
+  { id: 'formal', label: 'Formel' },
+  { id: 'sport', label: 'Sport' },
+  { id: 'party', label: 'Soirée' },
+];
+
+const timeFilters = [
+  { id: 'all', label: 'Toutes les dates' },
+  { id: 'today', label: 'Aujourd\'hui' },
+  { id: 'tomorrow', label: 'Demain' },
+  { id: 'this_week', label: 'Cette semaine' },
+  { id: 'next_week', label: 'Semaine prochaine' },
+  { id: 'this_month', label: 'Ce mois' },
+];
+
+interface Filters {
+  status: string;
+  type: string;
+  time: string;
+}
+
 export default function CalendarScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -69,6 +102,7 @@ export default function CalendarScreen() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
   
   // Form state
   const [selectedIcon, setSelectedIcon] = useState('utensils');
@@ -84,6 +118,13 @@ export default function CalendarScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
+  // Filters state
+  const [filters, setFilters] = useState<Filters>({
+    status: 'all',
+    type: 'all',
+    time: 'all'
+  });
+
   const currentMonth = selectedDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   const currentYear = selectedDate.getFullYear();
   const currentMonthIndex = selectedDate.getMonth();
@@ -94,6 +135,104 @@ export default function CalendarScreen() {
   const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Adjust for Monday start
 
   const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+  // Get current week dates with events
+  const getCurrentWeekDates = () => {
+    const today = new Date();
+    const currentDay = today.getDay();
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Get Monday of current week
+    
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + mondayOffset + i);
+      
+      const dateStr = date.toISOString().split('T')[0];
+      const dayEvents = getEventsForDate(dateStr);
+      
+      weekDates.push({
+        date: date,
+        dateStr: dateStr,
+        dayName: weekDays[i],
+        dayNumber: date.getDate(),
+        events: dayEvents,
+        isToday: dateStr === today.toISOString().split('T')[0]
+      });
+    }
+    
+    return weekDates;
+  };
+
+  // Filter events based on current filters
+  const filteredEvents = useMemo(() => {
+    let filtered = [...events];
+
+    // Filter by status
+    if (filters.status !== 'all') {
+      filtered = filtered.filter(event => event.status === filters.status);
+    }
+
+    // Filter by type
+    if (filters.type !== 'all') {
+      filtered = filtered.filter(event => event.event_type === filters.type);
+    }
+
+    // Filter by time
+    if (filters.time !== 'all') {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      switch (filters.time) {
+        case 'today':
+          filtered = filtered.filter(event => event.event_date === todayStr);
+          break;
+        case 'tomorrow':
+          filtered = filtered.filter(event => event.event_date === tomorrowStr);
+          break;
+        case 'this_week':
+          const weekStart = new Date(today);
+          const weekEnd = new Date(today);
+          weekStart.setDate(today.getDate() - today.getDay() + 1);
+          weekEnd.setDate(today.getDate() - today.getDay() + 7);
+          filtered = filtered.filter(event => {
+            const eventDate = new Date(event.event_date);
+            return eventDate >= weekStart && eventDate <= weekEnd;
+          });
+          break;
+        case 'next_week':
+          const nextWeekStart = new Date(today);
+          const nextWeekEnd = new Date(today);
+          nextWeekStart.setDate(today.getDate() - today.getDay() + 8);
+          nextWeekEnd.setDate(today.getDate() - today.getDay() + 14);
+          filtered = filtered.filter(event => {
+            const eventDate = new Date(event.event_date);
+            return eventDate >= nextWeekStart && eventDate <= nextWeekEnd;
+          });
+          break;
+        case 'this_month':
+          const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+          const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          filtered = filtered.filter(event => {
+            const eventDate = new Date(event.event_date);
+            return eventDate >= monthStart && eventDate <= monthEnd;
+          });
+          break;
+      }
+    }
+
+    // Sort by date and time
+    return filtered.sort((a, b) => {
+      const dateCompare = new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+      if (dateCompare === 0) {
+        return a.event_time.localeCompare(b.event_time);
+      }
+      return dateCompare;
+    });
+  }, [events, filters]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newDate = new Date(selectedDate);
@@ -136,6 +275,14 @@ export default function CalendarScreen() {
     setEventLocation('');
     setEventType('casual');
     setEventDescription('');
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      status: 'all',
+      type: 'all',
+      time: 'all'
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -257,24 +404,142 @@ export default function CalendarScreen() {
     return days;
   };
 
-  const renderEventsList = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayEvents = getEventsForDate(today);
+  // Render weekly view with events
+  const renderWeeklyView = () => {
+    const weekDates = getCurrentWeekDates();
     
     return (
+      <View style={styles.weeklyViewContainer}>
+        <Text style={styles.weeklyViewTitle}>Cette semaine</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.weeklyScroll}
+          contentContainerStyle={styles.weeklyContent}
+        >
+          {weekDates.map((dayData, index) => (
+            <View key={index} style={[
+              styles.weeklyDayCard,
+              dayData.isToday && styles.weeklyDayCardToday
+            ]}>
+              <Text style={[
+                styles.weeklyDayName,
+                dayData.isToday && styles.weeklyDayNameToday
+              ]}>
+                {dayData.dayName}
+              </Text>
+              <Text style={[
+                styles.weeklyDayNumber,
+                dayData.isToday && styles.weeklyDayNumberToday
+              ]}>
+                {dayData.dayNumber}
+              </Text>
+              
+              {dayData.events.length > 0 ? (
+                <View style={styles.weeklyEventsContainer}>
+                  {dayData.events.slice(0, 2).map((event, eventIndex) => {
+                    const iconData = eventIcons.find(icon => icon.id === event.icon);
+                    const IconComponent = iconData?.icon || Utensils;
+                    
+                    return (
+                      <View key={eventIndex} style={styles.weeklyEventItem}>
+                        <View style={[
+                          styles.weeklyEventIcon,
+                          { backgroundColor: iconData?.bg }
+                        ]}>
+                          <IconComponent size={12} color={iconData?.color} />
+                        </View>
+                        <Text style={styles.weeklyEventTitle} numberOfLines={1}>
+                          {event.title}
+                        </Text>
+                        <Text style={styles.weeklyEventTime}>
+                          {event.event_time.substring(0, 5)}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                  {dayData.events.length > 2 && (
+                    <Text style={styles.weeklyMoreEvents}>
+                      +{dayData.events.length - 2} autres
+                    </Text>
+                  )}
+                </View>
+              ) : (
+                <View style={styles.weeklyNoEvents}>
+                  <Text style={styles.weeklyNoEventsText}>Aucun événement</Text>
+                </View>
+              )}
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderEventsList = () => {
+    return (
       <View style={styles.eventsListContainer}>
-        <Text style={styles.eventsDateTitle}>
-          {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-        </Text>
+        {/* Filters Header */}
+        <View style={styles.filtersHeader}>
+          <Text style={styles.eventsListTitle}>
+            Tous les événements ({filteredEvents.length})
+          </Text>
+          <TouchableOpacity
+            style={styles.filtersButton}
+            onPress={() => setShowFiltersModal(true)}
+          >
+            <Filter size={20} color="#EE7518" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Active Filters Display */}
+        {(filters.status !== 'all' || filters.type !== 'all' || filters.time !== 'all') && (
+          <View style={styles.activeFiltersContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.activeFilters}>
+                {filters.status !== 'all' && (
+                  <View style={styles.activeFilterChip}>
+                    <Text style={styles.activeFilterText}>
+                      {statusOptions.find(s => s.id === filters.status)?.label}
+                    </Text>
+                  </View>
+                )}
+                {filters.type !== 'all' && (
+                  <View style={styles.activeFilterChip}>
+                    <Text style={styles.activeFilterText}>
+                      {typeOptions.find(t => t.id === filters.type)?.label}
+                    </Text>
+                  </View>
+                )}
+                {filters.time !== 'all' && (
+                  <View style={styles.activeFilterChip}>
+                    <Text style={styles.activeFilterText}>
+                      {timeFilters.find(t => t.id === filters.time)?.label}
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.resetFiltersChip}
+                  onPress={resetFilters}
+                >
+                  <RotateCcw size={14} color="#8E8E93" />
+                  <Text style={styles.resetFiltersText}>Réinitialiser</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        )}
         
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#EE7518" />
             <Text style={styles.loadingText}>Chargement des événements...</Text>
           </View>
-        ) : todayEvents.length === 0 ? (
+        ) : filteredEvents.length === 0 ? (
           <View style={styles.emptyEventsContainer}>
-            <Text style={styles.emptyEventsText}>Aucun événement aujourd'hui</Text>
+            <Text style={styles.emptyEventsText}>
+              {events.length === 0 ? 'Aucun événement créé' : 'Aucun événement ne correspond aux filtres'}
+            </Text>
             <TouchableOpacity
               style={styles.addEventButton}
               onPress={() => setShowCreateModal(true)}
@@ -284,7 +549,7 @@ export default function CalendarScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          todayEvents.map((event) => {
+          filteredEvents.map((event) => {
             const iconData = eventIcons.find(icon => icon.id === event.icon);
             const IconComponent = iconData?.icon || Utensils;
             
@@ -297,14 +562,14 @@ export default function CalendarScreen() {
                 <View style={styles.eventDetails}>
                   <Text style={styles.eventTitle}>{event.title}</Text>
                   <Text style={styles.eventTime}>
-                    {event.event_time} - {event.event_time.split(':').map((part, index) => {
-                      if (index === 0) {
-                        const hour = parseInt(part);
-                        return String(hour + 1).padStart(2, '0');
-                      }
-                      return part;
-                    }).join(':')}
+                    {new Date(event.event_date).toLocaleDateString('fr-FR', { 
+                      day: 'numeric', 
+                      month: 'short' 
+                    })} • {event.event_time.substring(0, 5)}
                   </Text>
+                  {event.location && (
+                    <Text style={styles.eventLocation}>{event.location}</Text>
+                  )}
                 </View>
                 
                 <View style={styles.eventActions}>
@@ -326,7 +591,6 @@ export default function CalendarScreen() {
                       onPress={() => handleGenerateOutfit(event.id)}
                     >
                       <Shirt size={16} color="#EE7518" />
-                      <Text style={styles.generateButtonText}>Générer tenue</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -631,12 +895,123 @@ export default function CalendarScreen() {
                 {renderCalendarDays()}
               </View>
             </View>
+
+            {/* Weekly View */}
+            {renderWeeklyView()}
           </>
         )}
 
         {/* Events List */}
         {renderEventsList()}
       </ScrollView>
+
+      {/* Filters Modal */}
+      <Modal
+        visible={showFiltersModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Filtres</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowFiltersModal(false)}
+            >
+              <X size={24} color="#1C1C1E" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            {/* Status Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Statut</Text>
+              <View style={styles.filterOptions}>
+                {statusOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.filterOption,
+                      filters.status === option.id && styles.filterOptionActive
+                    ]}
+                    onPress={() => setFilters(prev => ({ ...prev, status: option.id }))}
+                  >
+                    <Text style={[
+                      styles.filterOptionText,
+                      filters.status === option.id && styles.filterOptionTextActive
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Type Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Type d'événement</Text>
+              <View style={styles.filterOptions}>
+                {typeOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.filterOption,
+                      filters.type === option.id && styles.filterOptionActive
+                    ]}
+                    onPress={() => setFilters(prev => ({ ...prev, type: option.id }))}
+                  >
+                    <Text style={[
+                      styles.filterOptionText,
+                      filters.type === option.id && styles.filterOptionTextActive
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Time Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Période</Text>
+              <View style={styles.filterOptions}>
+                {timeFilters.map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.filterOption,
+                      filters.time === option.id && styles.filterOptionActive
+                    ]}
+                    onPress={() => setFilters(prev => ({ ...prev, time: option.id }))}
+                  >
+                    <Text style={[
+                      styles.filterOptionText,
+                      filters.time === option.id && styles.filterOptionTextActive
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={resetFilters}
+            >
+              <Text style={styles.resetButtonText}>Réinitialiser</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={() => setShowFiltersModal(false)}
+            >
+              <Text style={styles.applyButtonText}>Appliquer</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
 
       {/* Create Event Modal */}
       <Modal
@@ -984,16 +1359,157 @@ const styles = StyleSheet.create({
     backgroundColor: '#EE7518',
   },
 
-  // Events List - Updated to match design exactly
+  // Weekly View Styles
+  weeklyViewContainer: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  weeklyViewTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 16,
+  },
+  weeklyScroll: {
+    flexGrow: 0,
+  },
+  weeklyContent: {
+    gap: 12,
+  },
+  weeklyDayCard: {
+    width: 140,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  weeklyDayCardToday: {
+    borderColor: '#EE7518',
+    backgroundColor: '#FEF3E2',
+  },
+  weeklyDayName: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8E8E93',
+    textAlign: 'center',
+  },
+  weeklyDayNameToday: {
+    color: '#EE7518',
+    fontWeight: '600',
+  },
+  weeklyDayNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  weeklyDayNumberToday: {
+    color: '#EE7518',
+  },
+  weeklyEventsContainer: {
+    gap: 6,
+  },
+  weeklyEventItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  weeklyEventIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weeklyEventTitle: {
+    flex: 1,
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#1C1C1E',
+  },
+  weeklyEventTime: {
+    fontSize: 9,
+    color: '#8E8E93',
+  },
+  weeklyMoreEvents: {
+    fontSize: 9,
+    color: '#EE7518',
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  weeklyNoEvents: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  weeklyNoEventsText: {
+    fontSize: 10,
+    color: '#C7C7CC',
+  },
+
+  // Events List - Updated with filters
   eventsListContainer: {
     paddingHorizontal: 24,
     paddingBottom: 100,
   },
-  eventsDateTitle: {
+  filtersHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  eventsListTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#1C1C1E',
+  },
+  filtersButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEF3E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeFiltersContainer: {
     marginBottom: 16,
+  },
+  activeFilters: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 24,
+  },
+  activeFilterChip: {
+    backgroundColor: '#EE7518',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  activeFilterText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  resetFiltersChip: {
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  resetFiltersText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontWeight: '500',
   },
   loadingContainer: {
     alignItems: 'center',
@@ -1012,6 +1528,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8E8E93',
     marginBottom: 16,
+    textAlign: 'center',
   },
   addEventButton: {
     flexDirection: 'row',
@@ -1082,16 +1599,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   generateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  generateButtonText: {
-    fontSize: 12,
-    color: '#EE7518',
-    fontWeight: '500',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#FEF3E2',
   },
 
   // Modal Styles
@@ -1106,6 +1616,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E2E1',
+    justifyContent: 'space-between',
   },
   backButton: {
     width: 40,
@@ -1116,11 +1627,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalTitle: {
-    flex: 1,
     fontSize: 18,
     fontWeight: '600',
     color: '#1C1C1E',
-    textAlign: 'center',
+  },
+  closeButton: {
+    padding: 4,
   },
   headerSpacer: {
     width: 40,
@@ -1137,6 +1649,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 12,
+  },
+  
+  // Filter Styles
+  filterSection: {
+    marginVertical: 20,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 12,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  filterOptionActive: {
+    backgroundColor: '#EE7518',
+    borderColor: '#EE7518',
+  },
+  filterOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#8E8E93',
+  },
+  filterOptionTextActive: {
+    color: '#FFFFFF',
   },
   
   // Icon Selection - Fixed Layout
@@ -1271,6 +1819,34 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderTopWidth: 1,
     borderTopColor: '#E5E2E1',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  resetButton: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  resetButtonText: {
+    color: '#8E8E93',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  applyButton: {
+    flex: 2,
+    backgroundColor: '#EE7518',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   createButton: {
     backgroundColor: '#EE7518',
