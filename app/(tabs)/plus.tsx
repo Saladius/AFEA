@@ -181,6 +181,7 @@ export default function AddItemScreen() {
           allowsEditing: true,
           aspect: [1, 1],
           quality: 0.8,
+          allowedFileTypes: ['jpeg', 'jpg', 'png', 'webp'],
         });
       } else {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -193,19 +194,52 @@ export default function AddItemScreen() {
           allowsEditing: true,
           aspect: [1, 1],
           quality: 0.8,
+          allowedFileTypes: ['jpeg', 'jpg', 'png', 'webp'],
         });
       }
 
       if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // Validate image format on client side
+        const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        const mimeType = asset.mimeType || 'image/jpeg';
+        
+        console.log('📷 Selected image details:', {
+          uri: asset.uri,
+          mimeType: mimeType,
+          fileName: asset.fileName,
+          fileSize: asset.fileSize,
+        });
+        
+        if (!supportedTypes.includes(mimeType)) {
+          console.error('❌ CLIENT ERROR: Unsupported image format:', mimeType);
+          Alert.alert(
+            'Format non supporté', 
+            `Le format d'image ${mimeType} n'est pas supporté. Veuillez utiliser JPEG, PNG ou WebP.`
+          );
+          return;
+        }
+        
+        // Check file size (5MB limit)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          console.error('❌ CLIENT ERROR: File too large:', asset.fileSize);
+          Alert.alert(
+            'Fichier trop volumineux', 
+            'La taille de l\'image ne doit pas dépasser 5MB.'
+          );
+          return;
+        }
+        
         setSelectedImage(result.assets[0].uri);
         // Store the mimeType for later use in upload
-        setSelectedImageMimeType(result.assets[0].mimeType || 'image/jpeg');
+        setSelectedImageMimeType(mimeType);
         setCurrentStep('crop');
         setIsProcessing(true);
         setProcessingProgress(0);
       }
     } catch (error) {
-      console.error('Image picker error:', error);
+      console.error('❌ CLIENT ERROR: Image picker error:', error);
       Alert.alert('Erreur', 'Une erreur est survenue lors de la sélection de l\'image.');
     }
   };

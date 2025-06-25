@@ -69,6 +69,7 @@ export default function AddClothingModal({ visible, onClose, onAdd }: AddClothin
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      allowedFileTypes: ['jpeg', 'jpg', 'png', 'webp'],
     };
 
     let result;
@@ -84,7 +85,39 @@ export default function AddClothingModal({ visible, onClose, onAdd }: AddClothin
     }
 
     if (!result.canceled && result.assets[0]) {
-      setFormData(prev => ({ ...prev, image_url: result.assets[0].uri }));
+      const asset = result.assets[0];
+      
+      // Validate image format on client side
+      const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      const mimeType = asset.mimeType || 'image/jpeg';
+      
+      console.log('📷 Selected image details:', {
+        uri: asset.uri,
+        mimeType: mimeType,
+        fileName: asset.fileName,
+        fileSize: asset.fileSize,
+      });
+      
+      if (!supportedTypes.includes(mimeType)) {
+        console.error('❌ CLIENT ERROR: Unsupported image format:', mimeType);
+        Alert.alert(
+          'Unsupported Format', 
+          `Image format ${mimeType} is not supported. Please use JPEG, PNG, or WebP.`
+        );
+        return;
+      }
+      
+      // Check file size (5MB limit)
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        console.error('❌ CLIENT ERROR: File too large:', asset.fileSize);
+        Alert.alert(
+          'File Too Large', 
+          'Image size must not exceed 5MB.'
+        );
+        return;
+      }
+      
+      setFormData(prev => ({ ...prev, image_url: asset.uri }));
     }
   };
 
