@@ -28,7 +28,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useClothes } from '@/hooks/useClothes';
 import { storageService } from '@/services/storage';
 import { ClothingType, Season, Style } from '@/types/database';
-import { Platform } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
