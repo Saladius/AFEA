@@ -64,18 +64,48 @@ class StorageService {
 7. Définissez la limite de taille : 5242880 (5MB)
 8. Dans "Allowed MIME types", ajoutez : image/jpeg,image/png,image/webp
 9. Cliquez sur "Create bucket"
-10. Réessayez d'ajouter votre vêtement
+10. Configurez les politiques RLS (voir README.md section "Storage Setup")
+11. Réessayez d'ajouter votre vêtement
 
 Une fois le bucket créé manuellement, l'application fonctionnera correctement.`);
         } else if (result.status === 400) {
-          console.error('❌ SERVER ERROR: Bad request - invalid image format or data');
-          throw new Error(`Erreur de format d'image côté serveur. Le fichier envoyé n'est pas reconnu comme une image valide (JPEG, PNG, WebP) ou est corrompu.`);
+          console.error('❌ SERVER ERROR: Bad request - possible RLS policy violation or invalid image format');
+          
+          // Check if it's an RLS policy violation
+          if (result.body && (result.body.includes('row-level security') || result.body.includes('Unauthorized') || result.body.includes('403'))) {
+            throw new Error(`Erreur d'autorisation : Les politiques de sécurité (RLS) ne sont pas configurées correctement.
+
+🔧 SOLUTION REQUISE :
+1. Allez sur votre tableau de bord Supabase : https://supabase.com/dashboard
+2. Naviguez vers Storage → ${this.bucketName} → Policies
+3. Créez une politique INSERT avec l'expression :
+   (bucket_id = '${this.bucketName}'::text AND auth.role() = 'authenticated'::text)
+4. Créez une politique SELECT avec l'expression :
+   bucket_id = '${this.bucketName}'::text
+5. Créez une politique DELETE avec l'expression :
+   (bucket_id = '${this.bucketName}'::text AND auth.role() = 'authenticated'::text)
+
+Voir le README.md section "Storage Setup" pour les instructions détaillées.`);
+          } else {
+            throw new Error(`Erreur de format d'image côté serveur. Le fichier envoyé n'est pas reconnu comme une image valide (JPEG, PNG, WebP) ou est corrompu.`);
+          }
         } else if (result.status === 413) {
           console.error('❌ SERVER ERROR: File too large');
           throw new Error(`Fichier trop volumineux. La taille maximale autorisée est de 5MB.`);
         } else if (result.status === 415) {
           console.error('❌ SERVER ERROR: Unsupported media type');
           throw new Error(`Type de média non supporté par le serveur. Seuls les formats JPEG, PNG et WebP sont acceptés.`);
+        } else if (result.status === 403) {
+          console.error('❌ SERVER ERROR: Forbidden - RLS policy violation');
+          throw new Error(`Accès refusé : Les politiques de sécurité (RLS) ne permettent pas le téléchargement.
+
+🔧 SOLUTION REQUISE :
+1. Allez sur votre tableau de bord Supabase : https://supabase.com/dashboard
+2. Naviguez vers Storage → ${this.bucketName} → Policies
+3. Créez une politique INSERT pour les utilisateurs authentifiés
+4. Voir le README.md section "Storage Setup" pour les instructions complètes
+
+L'erreur indique que votre bucket existe mais n'a pas les bonnes politiques RLS configurées.`);
         }
         
         throw new Error(`Erreur serveur lors du téléchargement: ${result.status}. ${result.body || 'Aucun détail supplémentaire.'}`);
@@ -195,15 +225,35 @@ Une fois le bucket créé manuellement, l'application fonctionnera correctement.
 7. Définissez la limite de taille : 5242880 (5MB)
 8. Dans "Allowed MIME types", ajoutez : image/jpeg,image/png,image/webp
 9. Cliquez sur "Create bucket"
-10. Réessayez d'ajouter votre vêtement
+10. Configurez les politiques RLS (voir README.md section "Storage Setup")
+11. Réessayez d'ajouter votre vêtement
 
 Une fois le bucket créé manuellement, l'application fonctionnera correctement.`);
+        } else if (error.message.includes('row-level security') || error.message.includes('policy') || error.message.includes('RLS')) {
+          console.error('❌ SERVER ERROR: RLS policy violation in fallback');
+          throw new Error(`Erreur de politique de sécurité : Les politiques RLS ne sont pas configurées.
+
+🔧 SOLUTION REQUISE :
+1. Allez sur votre tableau de bord Supabase : https://supabase.com/dashboard
+2. Naviguez vers Storage → ${this.bucketName} → Policies
+3. Créez les politiques RLS nécessaires (voir README.md section "Storage Setup")
+4. Assurez-vous que les utilisateurs authentifiés peuvent INSERT, SELECT et DELETE
+
+Le bucket existe mais les politiques de sécurité empêchent le téléchargement.`);
         } else if (error.message.includes('Invalid file type') || error.message.includes('file type')) {
           console.error('❌ SERVER ERROR: Invalid file type in fallback');
           throw new Error(`Type de fichier invalide côté serveur. Seuls les formats JPEG, PNG et WebP sont acceptés.`);
         } else if (error.message.includes('File size') || error.message.includes('too large')) {
           console.error('❌ SERVER ERROR: File too large in fallback');
           throw new Error(`Fichier trop volumineux. La taille maximale autorisée est de 5MB.`);
+        } else if (error.message.includes('Network request failed')) {
+          console.error('❌ SERVER ERROR: Network request failed in fallback');
+          throw new Error(`Erreur de réseau lors du téléchargement. Vérifiez votre connexion internet et la configuration Supabase.
+
+Si le problème persiste, vérifiez que :
+1. Votre URL Supabase est correcte dans .env
+2. Votre clé anonyme Supabase est valide
+3. Les politiques RLS sont configurées (voir README.md section "Storage Setup")`);
         }
         
         throw new Error(`Erreur serveur lors du téléchargement (fallback): ${error.message}`);

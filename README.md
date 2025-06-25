@@ -83,16 +83,62 @@ The app uses Supabase PostgreSQL with the following main tables:
 
 ### 3. Storage Setup
 
-**CRITICAL**: You must create the storage bucket manually in your Supabase dashboard:
+**CRITICAL**: You must create the storage bucket AND configure RLS policies manually in your Supabase dashboard:
 
-1. Go to your Supabase project dashboard
-2. Navigate to **Storage** in the left sidebar
-3. Click **"New bucket"**
-4. Create a bucket named exactly: `clothes-images`
-5. Configure the bucket settings:
+#### Step 1: Create the Storage Bucket
+
+1. Go to your Supabase project dashboard at https://supabase.com/dashboard
+2. Select your project
+3. Navigate to **Storage** in the left sidebar
+4. Click **"New bucket"**
+5. Create a bucket named exactly: `clothes-images`
+6. Configure the bucket settings:
    - **Public bucket**: Enable this for public access to images
    - **File size limit**: Set to 5MB (5242880 bytes)
    - **Allowed MIME types**: `image/jpeg`, `image/png`, `image/webp`
+7. Click **"Create bucket"**
+
+#### Step 2: Configure Row Level Security (RLS) Policies
+
+**CRITICAL**: After creating the bucket, you MUST configure RLS policies to allow authenticated users to upload files:
+
+1. In the Storage section, click on the `clothes-images` bucket
+2. Click on the **"Policies"** tab
+3. Click **"New policy"** → **"Create a policy from scratch"**
+4. Configure the INSERT policy:
+   - **Name**: `Allow authenticated uploads to clothes-images`
+   - **For**: Select `INSERT`
+   - **Target**: Ensure `Objects` is selected
+   - **Using a custom expression**: Enter exactly:
+     ```sql
+     (bucket_id = 'clothes-images'::text AND auth.role() = 'authenticated'::text)
+     ```
+   - **Permissions**: Ensure `INSERT` is checked
+5. Click **"Review"** and then **"Save policy"**
+
+6. Create a SELECT policy for reading images:
+   - Click **"New policy"** → **"Create a policy from scratch"**
+   - **Name**: `Allow public access to clothes-images`
+   - **For**: Select `SELECT`
+   - **Target**: Ensure `Objects` is selected
+   - **Using a custom expression**: Enter exactly:
+     ```sql
+     bucket_id = 'clothes-images'::text
+     ```
+   - **Permissions**: Ensure `SELECT` is checked
+   - Click **"Review"** and then **"Save policy"**
+
+7. Create a DELETE policy for removing images:
+   - Click **"New policy"** → **"Create a policy from scratch"**
+   - **Name**: `Allow authenticated users to delete their clothes-images`
+   - **For**: Select `DELETE`
+   - **Target**: Ensure `Objects` is selected
+   - **Using a custom expression**: Enter exactly:
+     ```sql
+     (bucket_id = 'clothes-images'::text AND auth.role() = 'authenticated'::text)
+     ```
+   - **Permissions**: Ensure `DELETE` is checked
+   - Click **"Review"** and then **"Save policy"**
 
 ### 4. Installation & Development
 
@@ -191,17 +237,21 @@ npm run build:web
 #### "Bucket not found" Error
 This error occurs when the `clothes-images` storage bucket doesn't exist in your Supabase project.
 
+#### "Row Level Security Policy Violation" Error
+This error occurs when the storage bucket exists but doesn't have the proper RLS policies configured.
+
 **Solution:**
 1. Go to your Supabase dashboard
-2. Navigate to Storage
-3. Create a new bucket named `clothes-images`
-4. Enable public access if needed
-5. Set appropriate file size limits and MIME types
+2. Follow the complete **Storage Setup** instructions above
+3. Ensure BOTH the bucket creation AND RLS policy configuration are completed
+4. Verify that you have created all three policies: INSERT, SELECT, and DELETE
+5. Double-check that the policy expressions are entered exactly as shown
 
 #### Storage Upload Errors
-- Verify bucket permissions are correctly configured
+- Verify bucket RLS policies are correctly configured (see Storage Setup above)
 - Check that the bucket is set to public if you need public access to images
 - Ensure file size limits are appropriate (recommended: 5MB)
+- Confirm that all three RLS policies (INSERT, SELECT, DELETE) are created and active
 
 #### Authentication Issues
 - Verify your Supabase URL and anonymous key in `.env`
