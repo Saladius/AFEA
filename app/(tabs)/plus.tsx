@@ -462,6 +462,7 @@ export default function AddItemScreen() {
 
   const renderPhotoStep = () => (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+      {/* Photo Container with proper spacing */}
       <View style={styles.photoContainer}>
         {selectedImage ? (
           <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
@@ -478,6 +479,7 @@ export default function AddItemScreen() {
         )}
       </View>
 
+      {/* Action Buttons with spacing */}
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={styles.primaryButton}
@@ -496,6 +498,7 @@ export default function AddItemScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Tips Section with spacing */}
       <View style={styles.tipsSection}>
         <Text style={styles.tipsTitle}>Conseils pour de meilleures photos</Text>
         
@@ -528,6 +531,7 @@ export default function AddItemScreen() {
 
   const renderCropStep = () => (
     <View style={styles.stepContent}>
+      {/* Crop Container with spacing */}
       <View style={styles.cropContainer}>
         {selectedImage && (
           <Animated.View style={[styles.imagePreview, pulseStyle]}>
@@ -569,8 +573,8 @@ export default function AddItemScreen() {
   );
 
   const renderTagsStep = () => (
-    <View style={styles.stepContent}>
-      {/* Horizontal Layout: Image on left, Tags card on right - EXACT MATCH */}
+    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+      {/* Horizontal Layout: Image on left, Tags card on right with proper spacing */}
       <View style={styles.horizontalContainer}>
         {/* Left side - Image */}
         <View style={styles.leftImageContainer}>
@@ -624,7 +628,7 @@ export default function AddItemScreen() {
         </View>
       </View>
 
-      {/* Form inputs below - Compact and fits on screen */}
+      {/* Form inputs below with proper spacing */}
       <View style={styles.formSection}>
         {/* Clothing Name Input */}
         <View style={styles.inputSection}>
@@ -686,11 +690,12 @@ export default function AddItemScreen() {
           <Text style={styles.errorText}>{clothesError}</Text>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 
   const renderConfirmStep = () => (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+      {/* Confirm Container with proper spacing */}
       <View style={styles.confirmContainer}>
         <View style={styles.finalPreview}>
           {selectedImage && (
@@ -792,7 +797,7 @@ export default function AddItemScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/* Header with spacing */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -812,15 +817,15 @@ export default function AddItemScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
-      {/* Step Indicator */}
+      {/* Step Indicator with spacing */}
       {renderStepIndicator()}
 
-      {/* Content */}
+      {/* Content with spacing */}
       <View style={styles.content}>
         {renderStepContent()}
       </View>
 
-      {/* Bottom Actions */}
+      {/* Bottom Actions with spacing */}
       {!isProcessing && (
         <View style={styles.bottomActions}>
           {currentStep === 'tags' ? (
@@ -907,14 +912,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
+  
+  // Header with proper spacing
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 16, // Increased for better spacing
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E2E1',
+    marginBottom: 8, // Add margin below header
   },
   backButton: {
     width: 36,
@@ -935,16 +943,19 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 36,
   },
+  
+  // Step Indicator with spacing
   stepIndicator: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
+    paddingVertical: 16, // Increased for better spacing
     paddingHorizontal: 20,
+    marginBottom: 16, // Add margin below step indicator
   },
   progressBarContainer: {
     height: 3,
     backgroundColor: '#E5E2E1',
     borderRadius: 2,
-    marginBottom: 8,
+    marginBottom: 16, // Increased spacing
     overflow: 'hidden',
   },
   progressBarBackground: {
@@ -975,7 +986,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E2E1',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    marginBottom: 6, // Increased spacing
   },
   stepCircleActive: {
     backgroundColor: '#EE7518',
@@ -1006,18 +1017,23 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     fontWeight: '600',
   },
+  
+  // Content with spacing
   content: {
     flex: 1,
+    marginHorizontal: 16, // Add horizontal margins
   },
   stepContent: {
     flex: 1,
-    padding: 12,
+    padding: 20, // Increased padding for better spacing
   },
+  
+  // Photo Step with proper spacing
   photoContainer: {
-    marginBottom: 16,
+    marginBottom: 32, // Increased spacing between sections
   },
   photoPlaceholder: {
-    height: 180,
+    height: 200, // Increased height
     borderRadius: 16,
     borderWidth: 2,
     borderColor: '#E5E2E1',
@@ -1028,7 +1044,7 @@ const styles = StyleSheet.create({
   },
   selectedImage: {
     width: '100%',
-    height: 180,
+    height: 200, // Increased height
     borderRadius: 16,
   },
   cameraIconContainer: {
@@ -1038,13 +1054,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3E2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 16, // Increased spacing
   },
   photoTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 6,
+    marginBottom: 8, // Increased spacing
   },
   photoSubtitle: {
     fontSize: 14,
@@ -1053,14 +1069,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     paddingHorizontal: 24,
   },
+  
+  // Action Buttons with spacing
   actionButtons: {
-    gap: 8,
-    marginBottom: 16,
+    gap: 16, // Increased gap between buttons
+    marginBottom: 32, // Increased spacing below buttons
   },
   primaryButton: {
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 16, // Increased padding
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1079,7 +1097,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 16, // Increased padding
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1092,10 +1110,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  
+  // Tips Section with spacing
   tipsSection: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 12,
+    padding: 24, // Increased padding
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1106,12 +1126,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 8,
+    marginBottom: 20, // Increased spacing
   },
   tipItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 16, // Increased spacing between tips
   },
   tipIcon: {
     width: 32,
@@ -1120,7 +1140,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3E2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 16, // Increased spacing
   },
   tipContent: {
     flex: 1,
@@ -1129,23 +1149,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   tipDescription: {
     fontSize: 13,
     color: '#8E8E93',
     lineHeight: 18,
   },
+  
+  // Crop Step with spacing
   cropContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: 32, // Increased spacing
   },
   imagePreview: {
     position: 'relative',
-    width: width - 40,
-    height: (width - 40) * 1.2,
+    width: width - 80, // Increased margins
+    height: (width - 80) * 1.2,
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
@@ -1214,13 +1236,13 @@ const styles = StyleSheet.create({
   },
   cropInstructions: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 32, // Increased spacing
   },
   instructionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   instructionText: {
     fontSize: 14,
@@ -1229,17 +1251,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  // Horizontal Layout Styles - Exact match to design with same height and proper containment
+  // Tags Step - Horizontal Layout with proper spacing
   horizontalContainer: {
     flexDirection: 'row',
-    marginBottom: 12,
-    gap: 8,
-    height: 120, // Fixed height to ensure both elements match
+    marginBottom: 24, // Increased spacing
+    gap: 16, // Increased gap
+    height: 140, // Increased height for better proportions
   },
   leftImageContainer: {
-    width: 100,
-    height: 120, // Same height as tags card
-    borderRadius: 8,
+    width: 120, // Increased width
+    height: 140, // Increased height
+    borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
@@ -1254,10 +1276,10 @@ const styles = StyleSheet.create({
   },
   rightTagsCard: {
     flex: 1,
-    height: 120, // Same height as image container
+    height: 140, // Increased height
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 8,
+    borderRadius: 12,
+    padding: 16, // Increased padding
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1266,78 +1288,75 @@ const styles = StyleSheet.create({
     overflow: 'hidden', // CRITICAL: Ensures tags stay within the card
   },
   tagsCardTitle: {
-    fontSize: 12,
+    fontSize: 14, // Increased font size
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 6,
+    marginBottom: 12, // Increased spacing
   },
   tagRow: {
-    marginBottom: 4,
+    marginBottom: 8, // Increased spacing
   },
   tagRowLabel: {
-    fontSize: 9,
+    fontSize: 11, // Increased font size
     fontWeight: '500',
     color: '#8E8E93',
-    marginBottom: 2,
+    marginBottom: 4, // Increased spacing
   },
   tagRowChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 2,
-    // CRITICAL: Ensure chips don't overflow the container
+    gap: 4, // Increased gap
     maxWidth: '100%',
   },
   tagChip: {
     backgroundColor: '#EE7518',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    // CRITICAL: Prevent individual chips from being too wide
-    maxWidth: '48%', // Allow 2 chips per row with gap
+    borderRadius: 10, // Increased border radius
+    paddingHorizontal: 8, // Increased padding
+    paddingVertical: 4, // Increased padding
+    maxWidth: '48%',
   },
   tagChipText: {
     color: '#FFFFFF',
-    fontSize: 8,
+    fontSize: 10, // Increased font size
     fontWeight: '500',
-    // CRITICAL: Prevent text overflow
     numberOfLines: 1,
   },
   
-  // Form Section - Compact to fit on screen
+  // Form Section with proper spacing
   formSection: {
-    gap: 8,
+    gap: 20, // Increased gap between form sections
   },
   inputSection: {
-    marginBottom: 8,
+    marginBottom: 16, // Increased spacing
   },
   inputLabel: {
-    fontSize: 12,
+    fontSize: 14, // Increased font size
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 4,
+    marginBottom: 8, // Increased spacing
   },
   textInput: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    fontSize: 12,
+    borderRadius: 12,
+    paddingHorizontal: 16, // Increased padding
+    paddingVertical: 12, // Increased padding
+    fontSize: 14, // Increased font size
     color: '#1C1C1E',
     borderWidth: 1,
     borderColor: '#E5E2E1',
   },
   
-  // Season Selection - Compact
+  // Season Selection with spacing
   seasonContainer: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 8, // Increased gap
     flexWrap: 'wrap',
   },
   seasonChip: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 12, // Increased border radius
+    paddingHorizontal: 16, // Increased padding
+    paddingVertical: 8, // Increased padding
     borderWidth: 1,
     borderColor: '#E5E2E1',
   },
@@ -1346,7 +1365,7 @@ const styles = StyleSheet.create({
     borderColor: '#EE7518',
   },
   seasonChipText: {
-    fontSize: 10,
+    fontSize: 12, // Increased font size
     fontWeight: '500',
     color: '#8E8E93',
   },
@@ -1354,23 +1373,27 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
+  // Error Message with spacing
   errorMessage: {
     backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    padding: 8,
+    borderRadius: 12,
+    padding: 16, // Increased padding
     borderWidth: 1,
     borderColor: '#FECACA',
-    marginTop: 8,
+    marginTop: 16, // Increased spacing
   },
+  
+  // Confirm Step with spacing
   confirmContainer: {
     alignItems: 'center',
+    paddingVertical: 20, // Added vertical padding
   },
   finalPreview: {
-    width: 120,
-    height: 120,
+    width: 160,
+    height: 160,
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: 24, // Increased spacing
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -1383,13 +1406,13 @@ const styles = StyleSheet.create({
   },
   itemDetails: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 32, // Increased spacing
   },
   itemTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1C1C1E',
-    marginBottom: 2,
+    marginBottom: 8, // Increased spacing
   },
   itemSubtitle: {
     fontSize: 14,
@@ -1400,7 +1423,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 12,
+    padding: 24, // Increased padding
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1411,7 +1434,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 12, // Increased padding
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
   },
@@ -1425,21 +1448,24 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     fontWeight: '600',
   },
+  
+  // Bottom Actions with proper spacing
   bottomActions: {
-    padding: 12,
+    padding: 24, // Increased padding
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E2E1',
+    marginTop: 16, // Add margin above bottom actions
   },
   tagsActions: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 12, // Increased gap
   },
   modifyButton: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 16, // Increased padding
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E2E1',
@@ -1453,7 +1479,7 @@ const styles = StyleSheet.create({
     flex: 2,
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 16, // Increased padding
     alignItems: 'center',
     shadowColor: '#EE7518',
     shadowOffset: { width: 0, height: 2 },
@@ -1473,13 +1499,13 @@ const styles = StyleSheet.create({
   },
   cropActions: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 12, // Increased gap
   },
   cancelButton: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 16, // Increased padding
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E2E1',
@@ -1493,7 +1519,7 @@ const styles = StyleSheet.create({
     flex: 2,
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 16, // Increased padding
     alignItems: 'center',
     shadowColor: '#EE7518',
     shadowOffset: { width: 0, height: 2 },
@@ -1509,7 +1535,7 @@ const styles = StyleSheet.create({
   continueButton: {
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 16, // Increased padding
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
