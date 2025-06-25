@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, MoveVertical as MoreVertical, Plus, X, CreditCard as Edit3, Share, Trash2 } from 'lucide-react-native';
+import { Search, Filter, MoreVertical, Plus, X, CreditCard as Edit3, Share, Trash2, Palette } from 'lucide-react-native';
 import { useClothes } from '@/hooks/useClothes';
 import { useAuth } from '@/hooks/useAuth';
 import { ClothingItem } from '@/types/database';
@@ -24,16 +24,19 @@ const cardWidth = (width - 64) / 2; // 24px padding on each side + 16px gap
 
 const categories = ['Tous', 'Hauts', 'Bas', 'Chaussures', 'Accessoires', 'Robes', 'Vestes'];
 const colors = [
-  { name: 'all', color: '#FFFFFF', border: true },
-  { name: 'black', color: '#000000' },
-  { name: 'blue', color: '#3B82F6' },
-  { name: 'red', color: '#EF4444' },
-  { name: 'green', color: '#10B981' },
-  { name: 'yellow', color: '#F59E0B' },
-  { name: 'purple', color: '#8B5CF6' },
-  { name: 'pink', color: '#EC4899' },
-  { name: 'gray', color: '#6B7280' },
-  { name: 'white', color: '#FFFFFF' },
+  { name: 'all', color: '#FFFFFF', border: true, label: 'Toutes' },
+  { name: 'black', color: '#000000', label: 'Noir' },
+  { name: 'blue', color: '#3B82F6', label: 'Bleu' },
+  { name: 'red', color: '#EF4444', label: 'Rouge' },
+  { name: 'green', color: '#10B981', label: 'Vert' },
+  { name: 'yellow', color: '#F59E0B', label: 'Jaune' },
+  { name: 'purple', color: '#8B5CF6', label: 'Violet' },
+  { name: 'pink', color: '#EC4899', label: 'Rose' },
+  { name: 'gray', color: '#6B7280', label: 'Gris' },
+  { name: 'white', color: '#FFFFFF', label: 'Blanc' },
+  { name: 'brown', color: '#A16207', label: 'Marron' },
+  { name: 'orange', color: '#EA580C', label: 'Orange' },
+  { name: 'no-color', color: 'transparent', label: 'Sans couleur', special: true },
 ];
 
 const brands = ['Toutes', 'Nike', 'Adidas', 'Levi\'s', 'Zara', 'Hugo Boss', 'H&M', 'Uniqlo'];
@@ -102,7 +105,14 @@ export default function WardrobeScreen() {
   const filteredClothes = clothes.filter(item => {
     const allowedTypes = mapCategoryToType(selectedCategory);
     const categoryMatch = selectedCategory === 'Tous' || allowedTypes.includes(item.type);
-    const colorMatch = selectedColor === 'all' || item.color?.toLowerCase() === selectedColor.toLowerCase();
+    
+    let colorMatch = true;
+    if (selectedColor === 'no-color') {
+      colorMatch = !item.color || item.color.trim() === '';
+    } else if (selectedColor !== 'all') {
+      colorMatch = item.color?.toLowerCase() === selectedColor.toLowerCase();
+    }
+    
     const brandMatch = filters.brand === 'Toutes' || item.brand === filters.brand;
     const sizeMatch = filters.size === 'Toutes' || item.size === filters.size;
     const seasonMatch = filters.season === 'Toutes' || item.season === filters.season?.toLowerCase();
@@ -212,6 +222,26 @@ export default function WardrobeScreen() {
       'orange': '#EA580C',
     };
     return colorMap[color?.toLowerCase()] || '#8E8E93';
+  };
+
+  const renderColorIndicator = (item: ClothingItem) => {
+    if (!item.color || item.color.trim() === '') {
+      // No color assigned - show palette icon
+      return (
+        <View style={styles.noColorIndicator}>
+          <Palette size={10} color="#8E8E93" />
+        </View>
+      );
+    } else {
+      // Color assigned - show color dot
+      return (
+        <View style={[
+          styles.colorIndicator,
+          { backgroundColor: getColorForItem(item.color) },
+          (item.color?.toLowerCase() === 'white' || item.color?.toLowerCase() === 'blanc') && styles.whiteColorBorder
+        ]} />
+      );
+    }
   };
 
   const renderFilterSection = (title: string, options: string[], selectedValue: string, onSelect: (value: string) => void) => (
@@ -394,12 +424,16 @@ export default function WardrobeScreen() {
                 styles.colorChip,
                 { backgroundColor: colorItem.color },
                 colorItem.border && styles.colorChipBorder,
-                selectedColor === colorItem.name && styles.colorChipSelected
+                selectedColor === colorItem.name && styles.colorChipSelected,
+                colorItem.special && styles.specialColorChip
               ]}
               onPress={() => setSelectedColor(colorItem.name)}
             >
               {colorItem.name === 'all' && (
                 <Text style={styles.colorAllText}>✓</Text>
+              )}
+              {colorItem.name === 'no-color' && (
+                <Palette size={16} color="#8E8E93" />
               )}
             </TouchableOpacity>
           ))}
@@ -419,16 +453,12 @@ export default function WardrobeScreen() {
                 </Text>
                 
                 <View style={styles.cardDetails}>
-                  {item.color && (
-                    <View style={styles.detailRow}>
-                      <View style={[
-                        styles.colorIndicator,
-                        { backgroundColor: getColorForItem(item.color) },
-                        (item.color?.toLowerCase() === 'white' || item.color?.toLowerCase() === 'blanc') && styles.whiteColorBorder
-                      ]} />
-                      <Text style={styles.detailText} numberOfLines={1}>{item.color}</Text>
-                    </View>
-                  )}
+                  <View style={styles.detailRow}>
+                    {renderColorIndicator(item)}
+                    <Text style={styles.detailText} numberOfLines={1}>
+                      {item.color || 'Sans couleur'}
+                    </Text>
+                  </View>
                   
                   {item.brand && (
                     <Text style={styles.brandText} numberOfLines={1}>{item.brand}</Text>
@@ -563,12 +593,16 @@ export default function WardrobeScreen() {
                       styles.colorFilterChip,
                       { backgroundColor: colorItem.color },
                       colorItem.border && styles.colorChipBorder,
-                      filters.color === colorItem.name && styles.colorChipSelected
+                      filters.color === colorItem.name && styles.colorChipSelected,
+                      colorItem.special && styles.specialColorChip
                     ]}
                     onPress={() => setFilters(prev => ({ ...prev, color: colorItem.name }))}
                   >
                     {colorItem.name === 'all' && (
                       <Text style={styles.colorAllText}>✓</Text>
+                    )}
+                    {colorItem.name === 'no-color' && (
+                      <Palette size={16} color="#8E8E93" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -746,6 +780,11 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#EE7518',
   },
+  specialColorChip: {
+    borderWidth: 2,
+    borderColor: '#E5E2E1',
+    borderStyle: 'dashed',
+  },
   colorAllText: {
     fontSize: 12,
     color: '#8E8E93',
@@ -806,6 +845,18 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     marginRight: 6,
+  },
+  noColorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
   },
   whiteColorBorder: {
     borderWidth: 1,
