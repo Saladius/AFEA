@@ -569,7 +569,7 @@ export default function AddItemScreen() {
   );
 
   const renderTagsStep = () => (
-    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.stepContent}>
       {/* Horizontal Layout: Image on left, Tags card on right */}
       <View style={styles.horizontalContainer}>
         {/* Left side - Image */}
@@ -624,7 +624,7 @@ export default function AddItemScreen() {
         </View>
       </View>
 
-      {/* Form inputs below */}
+      {/* Form inputs below - More compact */}
       <View style={styles.formSection}>
         {/* Clothing Name Input */}
         <View style={styles.inputSection}>
@@ -686,7 +686,7 @@ export default function AddItemScreen() {
           <Text style={styles.errorText}>{clothesError}</Text>
         </View>
       )}
-    </ScrollView>
+    </View>
   );
 
   const renderConfirmStep = () => (
@@ -937,14 +937,14 @@ const styles = StyleSheet.create({
   },
   stepIndicator: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 20,
   },
   progressBarContainer: {
     height: 3,
     backgroundColor: '#E5E2E1',
     borderRadius: 2,
-    marginBottom: 16,
+    marginBottom: 12,
     overflow: 'hidden',
   },
   progressBarBackground: {
@@ -975,7 +975,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E2E1',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   stepCircleActive: {
     backgroundColor: '#EE7518',
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   stepTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
     color: '#8E8E93',
     textAlign: 'center',
@@ -1011,13 +1011,13 @@ const styles = StyleSheet.create({
   },
   stepContent: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   photoContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   photoPlaceholder: {
-    height: 240,
+    height: 200,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: '#E5E2E1',
@@ -1028,7 +1028,7 @@ const styles = StyleSheet.create({
   },
   selectedImage: {
     width: '100%',
-    height: 240,
+    height: 200,
     borderRadius: 16,
   },
   cameraIconContainer: {
@@ -1054,13 +1054,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   actionButtons: {
-    gap: 12,
-    marginBottom: 24,
+    gap: 10,
+    marginBottom: 20,
   },
   primaryButton: {
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1095,7 +1095,7 @@ const styles = StyleSheet.create({
   tipsSection: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1106,12 +1106,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   tipItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   tipIcon: {
     width: 32,
@@ -1214,7 +1214,7 @@ const styles = StyleSheet.create({
   },
   cropInstructions: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 20,
   },
   instructionTitle: {
     fontSize: 18,
@@ -1229,15 +1229,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  // New Horizontal Layout Styles
+  // Horizontal Layout Styles - More compact
   horizontalContainer: {
     flexDirection: 'row',
-    marginBottom: 24,
-    gap: 16,
+    marginBottom: 16,
+    gap: 12,
   },
   leftImageContainer: {
-    width: 120,
-    height: 160,
+    width: 100,
+    height: 130,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
@@ -1255,7 +1255,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1263,72 +1263,72 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   tagsCardTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 16,
-  },
-  tagRow: {
     marginBottom: 12,
   },
+  tagRow: {
+    marginBottom: 8,
+  },
   tagRowLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     color: '#8E8E93',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   tagRowChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 4,
   },
   tagChip: {
     backgroundColor: '#EE7518',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   tagChipText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '500',
   },
   
-  // Form Section
+  // Form Section - More compact
   formSection: {
-    gap: 20,
+    gap: 12,
   },
   inputSection: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   textInput: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
     color: '#1C1C1E',
     borderWidth: 1,
     borderColor: '#E5E2E1',
   },
   
-  // Season Selection
+  // Season Selection - More compact
   seasonContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     flexWrap: 'wrap',
   },
   seasonChip: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: '#E5E2E1',
   },
@@ -1337,7 +1337,7 @@ const styles = StyleSheet.create({
     borderColor: '#EE7518',
   },
   seasonChipText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: '#8E8E93',
   },
@@ -1348,19 +1348,20 @@ const styles = StyleSheet.create({
   errorMessage: {
     backgroundColor: '#FEF2F2',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#FECACA',
+    marginTop: 12,
   },
   confirmContainer: {
     alignItems: 'center',
   },
   finalPreview: {
-    width: 160,
-    height: 160,
+    width: 140,
+    height: 140,
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -1373,13 +1374,13 @@ const styles = StyleSheet.create({
   },
   itemDetails: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   itemTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#1C1C1E',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   itemSubtitle: {
     fontSize: 14,
@@ -1390,7 +1391,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1401,7 +1402,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
   },
@@ -1416,20 +1417,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bottomActions: {
-    padding: 20,
+    padding: 16,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E2E1',
   },
   tagsActions: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   modifyButton: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E2E1',
@@ -1443,7 +1444,7 @@ const styles = StyleSheet.create({
     flex: 2,
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     shadowColor: '#EE7518',
     shadowOffset: { width: 0, height: 2 },
@@ -1463,13 +1464,13 @@ const styles = StyleSheet.create({
   },
   cropActions: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   cancelButton: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E2E1',
@@ -1483,7 +1484,7 @@ const styles = StyleSheet.create({
     flex: 2,
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     shadowColor: '#EE7518',
     shadowOffset: { width: 0, height: 2 },
@@ -1499,7 +1500,7 @@ const styles = StyleSheet.create({
   continueButton: {
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
