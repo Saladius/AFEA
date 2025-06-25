@@ -1,34 +1,42 @@
-Here's the fixed script with the missing closing brackets and required whitespace. I'll add the missing closing brackets for the useEffect hook and the closing curly brace for the component:
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import AddClothingModal from '@/components/AddClothingModal';
 
-```javascript
-// After the cropProgressStyle useEffect
-useEffect(() => {
-  if (currentStep === 'crop' && isProcessing) {
-    // Simulate progress
-    const interval = setInterval(() => {
-      setProcessingProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsProcessing(false);
-          pulseValue.value = withTiming(1, { duration: 300 });
-          setTimeout(() => {
-            setCurrentStep('tags');
-          }, 500);
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 50);
+export default function PlusTab() {
+  const [modalVisible, setModalVisible] = useState(false);
 
-    return () => clearInterval(interval);
-  }
-}, [currentStep, isProcessing]);
-```
+  useEffect(() => {
+    // Open modal immediately when this tab is accessed
+    setModalVisible(true);
+  }, []);
 
-And at the very end of the file, after all the styles:
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    // Navigate back to the previous tab (wardrobe)
+    router.replace('/(tabs)/wardrobe');
+  };
 
-```javascript
+  const handleAddClothing = () => {
+    setModalVisible(false);
+    // Navigate back to wardrobe after adding clothing
+    router.replace('/(tabs)/wardrobe');
+  };
+
+  return (
+    <View style={styles.container}>
+      <AddClothingModal
+        visible={modalVisible}
+        onClose={handleCloseModal}
+        onAdd={handleAddClothing}
+      />
+    </View>
+  );
 }
-```
 
-The complete file should now be properly closed with all required brackets and maintain proper whitespace and indentation.
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+});
