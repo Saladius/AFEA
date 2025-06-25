@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, Filter, MoveHorizontal as MoreHorizontal, Plus, X, CreditCard as Edit3, Share, Trash2 } from 'lucide-react-native';
+import { Search, Filter, MoreVertical, Plus, X, Edit3, Share, Trash2 } from 'lucide-react-native';
 import { useClothes } from '@/hooks/useClothes';
 import { useAuth } from '@/hooks/useAuth';
 import { ClothingItem } from '@/types/database';
@@ -443,7 +443,7 @@ export default function WardrobeScreen() {
                   style={styles.optionsButton}
                   onPress={() => handleItemOptions(item)}
                 >
-                  <MoreHorizontal size={16} color="#8E8E93" />
+                  <MoreVertical size={16} color="#8E8E93" />
                 </TouchableOpacity>
               </View>
             </View>
