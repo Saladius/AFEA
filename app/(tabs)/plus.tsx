@@ -579,7 +579,7 @@ export default function AddItemScreen() {
           )}
         </View>
 
-        {/* Right side - Tags card */}
+        {/* Right side - Tags card with proper containment */}
         <View style={styles.rightTagsCard}>
           <Text style={styles.tagsCardTitle}>Tags générés</Text>
           
@@ -1229,7 +1229,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  // Horizontal Layout Styles - Exact match to design with same height
+  // Horizontal Layout Styles - Exact match to design with same height and proper containment
   horizontalContainer: {
     flexDirection: 'row',
     marginBottom: 12,
@@ -1263,6 +1263,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    overflow: 'hidden', // CRITICAL: Ensures tags stay within the card
   },
   tagsCardTitle: {
     fontSize: 12,
@@ -1283,17 +1284,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 2,
+    // CRITICAL: Ensure chips don't overflow the container
+    maxWidth: '100%',
   },
   tagChip: {
     backgroundColor: '#EE7518',
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
+    // CRITICAL: Prevent individual chips from being too wide
+    maxWidth: '48%', // Allow 2 chips per row with gap
   },
   tagChipText: {
     color: '#FFFFFF',
     fontSize: 8,
     fontWeight: '500',
+    // CRITICAL: Prevent text overflow
+    numberOfLines: 1,
   },
   
   // Form Section - Compact to fit on screen
