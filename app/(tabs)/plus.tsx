@@ -438,7 +438,7 @@ export default function AddItemScreen() {
               index === currentStepIndex && styles.stepCircleCurrent
             ]}>
               {index < currentStepIndex ? (
-                <Check size={12} color="#FFFFFF" />
+                <Check size={10} color="#FFFFFF" />
               ) : (
                 <Text style={[
                   styles.stepNumber,
@@ -570,7 +570,7 @@ export default function AddItemScreen() {
 
   const renderTagsStep = () => (
     <View style={styles.stepContent}>
-      {/* Horizontal Layout: Image on left, Tags card on right */}
+      {/* Horizontal Layout: Image on left, Tags card on right - EXACT MATCH */}
       <View style={styles.horizontalContainer}>
         {/* Left side - Image */}
         <View style={styles.leftImageContainer}>
