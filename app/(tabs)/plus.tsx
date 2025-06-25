@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft, Camera, Image as ImageIcon, Lightbulb, Contrast, Sparkles, Check, ChevronRight, CreditCard as Edit3, Plus } from 'lucide-react-native';
@@ -75,7 +74,6 @@ export default function AddItemScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>('image/jpeg');
   const progressValue = useSharedValue(0);
   const cropProgressValue = useSharedValue(0);
@@ -311,7 +309,25 @@ export default function AddItemScreen() {
       const savedItem = await addClothingItem(clothingItem);
       console.log('✅ Item saved successfully:', savedItem);
 
-      setShowSuccessModal(true);
+      Alert.alert(
+        'Article ajouté !',
+        'Votre vêtement a été ajouté à votre garde-robe.',
+        [
+          {
+            text: 'Voir ma garde-robe',
+            onPress: () => {
+              resetForm();
+              router.replace('/(tabs)/wardrobe');
+            }
+          },
+          {
+            text: 'Ajouter un autre',
+            onPress: () => {
+              resetForm();
+            }
+          }
+        ]
+      );
     } catch (error) {
       console.error('❌ Error saving clothing item:', error);
       
@@ -340,7 +356,6 @@ export default function AddItemScreen() {
   const resetForm = () => {
     setCurrentStep('photo');
     setSelectedImage(null);
-    setShowSuccessModal(false);
     setSelectedImageMimeType('image/jpeg');
     setClothingName('T-shirt bleu basique');
     setSelectedSeason('all');
@@ -367,16 +382,6 @@ export default function AddItemScreen() {
     setIsSaving(false);
     setProcessingProgress(0);
     setEditingField(null);
-  };
-
-  const handleSuccessAction = (action: 'wardrobe' | 'another') => {
-    setShowSuccessModal(false);
-    resetForm();
-    
-    if (action === 'wardrobe') {
-      router.replace('/(tabs)/wardrobe');
-    }
-    // If 'another', just stay on the current screen with reset form
   };
 
   const mapTypeToDatabase = (displayType: string): ClothingType => {
@@ -838,7 +843,6 @@ export default function AddItemScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
       {/* Header with spacing */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -933,71 +937,6 @@ export default function AddItemScreen() {
           )}
         </View>
       )}
-
-      {/* Success Modal */}
-      <Modal
-        visible={showSuccessModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowSuccessModal(false)}
-      >
-        <View style={styles.successModalOverlay}>
-          <Animated.View style={styles.successModalContainer}>
-            {/* Success Icon */}
-            <View style={styles.successIconContainer}>
-              <View style={styles.successIconBackground}>
-                <Check size={32} color="#FFFFFF" />
-              </View>
-              <View style={styles.successIconRing} />
-            </View>
-
-            {/* Success Content */}
-            <View style={styles.successContent}>
-              <Text style={styles.successTitle}>Article ajouté !</Text>
-              <Text style={styles.successSubtitle}>
-                Votre vêtement a été ajouté avec succès à votre garde-robe
-              </Text>
-            </View>
-
-            {/* Preview */}
-            {selectedImage && (
-              <View style={styles.successPreview}>
-                <Image source={{ uri: selectedImage }} style={styles.successPreviewImage} />
-                <Text style={styles.successPreviewText}>
-                  {clothingName || 'Nouveau vêtement'}
-                </Text>
-              </View>
-            )}
-
-            {/* Action Buttons */}
-            <View style={styles.successActions}>
-              <TouchableOpacity
-                style={styles.successPrimaryButton}
-                onPress={() => handleSuccessAction('wardrobe')}
-              >
-                <Text style={styles.successPrimaryButtonText}>Voir ma garde-robe</Text>
-                <ChevronRight size={18} color="#FFFFFF" />
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.successSecondaryButton}
-                onPress={() => handleSuccessAction('another')}
-              >
-                <Plus size={18} color="#EE7518" />
-                <Text style={styles.successSecondaryButtonText}>Ajouter un autre</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Close Button */}
-            <TouchableOpacity
-              style={styles.successCloseButton}
-              onPress={() => setShowSuccessModal(false)}
-            >
-              <Text style={styles.successCloseButtonText}>Fermer</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -1664,143 +1603,5 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     backgroundColor: '#10B981',
-  },
-
-  // Success Modal Styles
-  successModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  successModalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    maxWidth: 340,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  successIconContainer: {
-    position: 'relative',
-    marginBottom: 24,
-  },
-  successIconBackground: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  successIconRing: {
-    position: 'absolute',
-    top: -8,
-    left: -8,
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 2,
-    borderColor: '#10B981',
-    opacity: 0.2,
-  },
-  successContent: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  successTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1C1C1E',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  successSubtitle: {
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 8,
-  },
-  successPreview: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  successPreviewImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#E5E2E1',
-  },
-  successPreviewText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    textAlign: 'center',
-  },
-  successActions: {
-    width: '100%',
-    gap: 12,
-    marginBottom: 16,
-  },
-  successPrimaryButton: {
-    backgroundColor: '#EE7518',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#EE7518',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  successPrimaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  successSecondaryButton: {
-    backgroundColor: '#FEF3E2',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#EE7518',
-  },
-  successSecondaryButtonText: {
-    color: '#EE7518',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  successCloseButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  successCloseButtonText: {
-    color: '#8E8E93',
-    fontSize: 14,
-    fontWeight: '500',
   },
 });
