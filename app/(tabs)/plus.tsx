@@ -28,6 +28,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useClothes } from '@/hooks/useClothes';
 import { storageService } from '@/services/storage';
 import { ClothingType, Season, Style } from '@/types/database';
+import { Platform } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -228,6 +229,14 @@ export default function AddItemScreen() {
             'Fichier trop volumineux', 
             'La taille de l\'image ne doit pas dépasser 5MB.'
           );
+          return;
+        }
+        
+        // Validate file before proceeding
+        const validation = storageService.validateFile(asset.uri, mimeType, asset.fileSize);
+        if (!validation.valid) {
+          console.error('❌ CLIENT ERROR: File validation failed:', validation.error);
+          Alert.alert('Fichier invalide', validation.error);
           return;
         }
         

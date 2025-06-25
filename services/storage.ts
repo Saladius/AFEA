@@ -1,22 +1,18 @@
 import { supabase } from '@/lib/supabase';
-import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
 
 class StorageService {
   private bucketName = 'clothes-images';
 
   async uploadImage(uri: string, fileName: string, mimeType?: string): Promise<string> {
     try {
-      console.log('🔄 CLIENT: Starting image upload with FileSystem:', { uri, fileName, mimeType });
+      console.log('🔄 CLIENT: Starting image upload:', { 
+        uri, 
+        fileName, 
+        mimeType, 
+        platform: Platform.OS 
+      });
       
-      // Get Supabase configuration
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !supabaseAnonKey) {
-        console.error('❌ CLIENT ERROR: Missing Supabase configuration');
-        throw new Error('Configuration Supabase manquante');
-      }
-
       // Validate and determine content type
       const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
       const contentType = mimeType || 'image/jpeg';
@@ -28,31 +24,143 @@ class StorageService {
       
       console.log('📤 CLIENT: Using validated content type:', contentType);
 
-      // Construct the upload URL
-      const uploadUrl = `${supabaseUrl}/storage/v1/object/${this.bucketName}/${fileName}`;
+      // Use different upload methods based on platform
+      if (Platform.OS === 'web') {
+        return await this.uploadImageWeb(uri, fileName, contentType);
+      } else {
+        // For mobile platforms (iOS/Android), use the Supabase client directly
+        return await this.uploadImageMobile(uri, fileName, contentType);
+      }
+
+    } catch (error) {
+      console.error('❌ CLIENT ERROR: Error uploading image:', error);
+      throw error;
+    }
+  }
+
+  // Web-specific upload using fetch
+  private async uploadImageWeb(uri: string, fileName: string, contentType: string): Promise<string> {
+    try {
+      console.log('🌐 CLIENT: Using web upload method');
       
-      console.log('📤 CLIENT: Upload URL:', uploadUrl);
-
-      // Upload using FileSystem
-      const result = await FileSystem.uploadAsync(uploadUrl, uri, {
-        httpMethod: 'POST',
-        headers: {
-          'Content-Type': contentType,
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-        },
-        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+      // Convert URI to blob for web
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      
+      console.log('📤 CLIENT: Blob details:', { 
+        size: blob.size, 
+        type: blob.type,
+        expectedType: contentType 
       });
+      
+      const { data, error } = await supabase.storage
+        .from(this.bucketName)
+        .upload(fileName, blob, {
+          contentType: contentType,
+          upsert: true
+        });
 
-      console.log('📤 CLIENT: Upload result:', result);
+      if (error) {
+        console.error('❌ SERVER ERROR: Web upload error:', error);
+        throw this.handleStorageError(error);
+      }
 
-      if (result.status !== 200) {
-        console.error('❌ SERVER ERROR: Upload failed with status:', result.status);
-        console.error('❌ SERVER ERROR: Response body:', result.body);
+      console.log('✅ CLIENT: Web upload successful:', data);
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from(this.bucketName)
+        .getPublicUrl(data.path);
+
+      console.log('🔗 CLIENT: Public URL generated:', publicUrlData.publicUrl);
+      return publicUrlData.publicUrl;
+
+    } catch (error) {
+      console.error('❌ CLIENT ERROR: Web upload failed:', error);
+      throw error;
+    }
+  }
+
+  // Mobile-specific upload (iOS/Android)
+  private async uploadImageMobile(uri: string, fileName: string, contentType: string): Promise<string> {
+    try {
+      console.log('📱 CLIENT: Using mobile upload method for platform:', Platform.OS);
+      
+      // For mobile, we need to convert the URI to a format that Supabase can handle
+      let fileData: any;
+      
+      if (Platform.OS === 'android') {
+        // Android-specific handling
+        console.log('🤖 CLIENT: Android-specific upload handling');
         
-        // Handle specific error cases
-        if (result.status === 404) {
-          console.error('❌ SERVER ERROR: Bucket not found');
-          throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas dans votre projet Supabase.
+        // Use fetch to get the file data as ArrayBuffer for Android
+        const response = await fetch(uri);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        fileData = arrayBuffer;
+        
+        console.log('📤 CLIENT: Android file data prepared:', { 
+          size: arrayBuffer.byteLength,
+          type: 'ArrayBuffer'
+        });
+        
+      } else {
+        // iOS handling - can use blob
+        console.log('🍎 CLIENT: iOS-specific upload handling');
+        
+        const response = await fetch(uri);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        fileData = blob;
+        
+        console.log('📤 CLIENT: iOS file data prepared:', { 
+          size: blob.size,
+          type: blob.type || contentType
+        });
+      }
+
+      // Upload using Supabase client
+      const { data, error } = await supabase.storage
+        .from(this.bucketName)
+        .upload(fileName, fileData, {
+          contentType: contentType,
+          upsert: true
+        });
+
+      if (error) {
+        console.error('❌ SERVER ERROR: Mobile upload error:', error);
+        throw this.handleStorageError(error);
+      }
+
+      console.log('✅ CLIENT: Mobile upload successful:', data);
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from(this.bucketName)
+        .getPublicUrl(data.path);
+
+      console.log('🔗 CLIENT: Public URL generated:', publicUrlData.publicUrl);
+      return publicUrlData.publicUrl;
+
+    } catch (error) {
+      console.error('❌ CLIENT ERROR: Mobile upload failed:', error);
+      throw error;
+    }
+  }
+
+  // Centralized error handling for storage errors
+  private handleStorageError(error: any): Error {
+    console.error('🔍 CLIENT: Analyzing storage error:', error);
+    
+    if (error.message.includes('Bucket not found') || error.message.includes('bucket') || error.message.includes('404')) {
+      console.error('❌ SERVER ERROR: Bucket not found');
+      return new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas dans votre projet Supabase.
 
 🔧 SOLUTION MANUELLE REQUISE :
 1. Connectez-vous à votre tableau de bord Supabase : https://supabase.com/dashboard
@@ -68,12 +176,15 @@ class StorageService {
 11. Réessayez d'ajouter votre vêtement
 
 Une fois le bucket créé manuellement, l'application fonctionnera correctement.`);
-        } else if (result.status === 400) {
-          console.error('❌ SERVER ERROR: Bad request - possible RLS policy violation or invalid image format');
-          
-          // Check if it's an RLS policy violation
-          if (result.body && (result.body.includes('row-level security') || result.body.includes('Unauthorized') || result.body.includes('403'))) {
-            throw new Error(`Erreur d'autorisation : Les politiques de sécurité (RLS) ne sont pas configurées correctement.
+    }
+    
+    if (error.message.includes('row-level security') || 
+        error.message.includes('policy') || 
+        error.message.includes('RLS') ||
+        error.message.includes('Unauthorized') ||
+        error.message.includes('403')) {
+      console.error('❌ SERVER ERROR: RLS policy violation');
+      return new Error(`Erreur d'autorisation : Les politiques de sécurité (RLS) ne sont pas configurées correctement.
 
 🔧 SOLUTION REQUISE :
 1. Allez sur votre tableau de bord Supabase : https://supabase.com/dashboard
@@ -85,67 +196,72 @@ Une fois le bucket créé manuellement, l'application fonctionnera correctement.
 5. Créez une politique DELETE avec l'expression :
    (bucket_id = '${this.bucketName}'::text AND auth.role() = 'authenticated'::text)
 
-Voir le README.md section "Storage Setup" pour les instructions détaillées.`);
-          } else {
-            throw new Error(`Erreur de format d'image côté serveur. Le fichier envoyé n'est pas reconnu comme une image valide (JPEG, PNG, WebP) ou est corrompu.`);
-          }
-        } else if (result.status === 413) {
-          console.error('❌ SERVER ERROR: File too large');
-          throw new Error(`Fichier trop volumineux. La taille maximale autorisée est de 5MB.`);
-        } else if (result.status === 415) {
-          console.error('❌ SERVER ERROR: Unsupported media type');
-          throw new Error(`Type de média non supporté par le serveur. Seuls les formats JPEG, PNG et WebP sont acceptés.`);
-        } else if (result.status === 403) {
-          console.error('❌ SERVER ERROR: Forbidden - RLS policy violation');
-          throw new Error(`Accès refusé : Les politiques de sécurité (RLS) ne permettent pas le téléchargement.
+Voir le README.md section "Storage Setup" pour les instructions détaillées.
 
-🔧 SOLUTION REQUISE :
-1. Allez sur votre tableau de bord Supabase : https://supabase.com/dashboard
-2. Naviguez vers Storage → ${this.bucketName} → Policies
-3. Créez une politique INSERT pour les utilisateurs authentifiés
-4. Voir le README.md section "Storage Setup" pour les instructions complètes
-
-L'erreur indique que votre bucket existe mais n'a pas les bonnes politiques RLS configurées.`);
-        }
-        
-        throw new Error(`Erreur serveur lors du téléchargement: ${result.status}. ${result.body || 'Aucun détail supplémentaire.'}`);
-      }
-
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from(this.bucketName)
-        .getPublicUrl(fileName);
-
-      console.log('🔗 CLIENT: Public URL generated:', publicUrlData.publicUrl);
-      return publicUrlData.publicUrl;
-
-    } catch (error) {
-      console.error('❌ CLIENT ERROR: Error uploading image:', error);
-      // Try fallback method if primary upload fails
-      console.log('🔄 CLIENT: Attempting fallback upload method...');
-      try {
-        return await this.uploadImageFallback(uri, fileName, mimeType);
-      } catch (fallbackError) {
-        console.error('❌ CLIENT ERROR: Fallback upload also failed:', fallbackError);
-        throw error; // Throw original error
-      }
+IMPORTANT: Cette erreur indique que votre bucket existe mais n'a pas les bonnes politiques RLS configurées pour permettre aux utilisateurs authentifiés de télécharger des fichiers.`);
     }
+    
+    if (error.message.includes('Invalid file type') || error.message.includes('file type')) {
+      console.error('❌ SERVER ERROR: Invalid file type');
+      return new Error(`Type de fichier invalide côté serveur. Seuls les formats JPEG, PNG et WebP sont acceptés.`);
+    }
+    
+    if (error.message.includes('File size') || error.message.includes('too large') || error.message.includes('413')) {
+      console.error('❌ SERVER ERROR: File too large');
+      return new Error(`Fichier trop volumineux. La taille maximale autorisée est de 5MB.`);
+    }
+    
+    if (error.message.includes('Network request failed') || error.message.includes('network')) {
+      console.error('❌ SERVER ERROR: Network request failed');
+      return new Error(`Erreur de réseau lors du téléchargement. Vérifiez votre connexion internet et la configuration Supabase.
+
+Si le problème persiste, vérifiez que :
+1. Votre URL Supabase est correcte dans .env
+2. Votre clé anonyme Supabase est valide
+3. Les politiques RLS sont configurées (voir README.md section "Storage Setup")
+4. Votre connexion internet est stable
+
+Platform: ${Platform.OS}`);
+    }
+    
+    if (error.message.includes('415')) {
+      console.error('❌ SERVER ERROR: Unsupported media type');
+      return new Error(`Type de média non supporté par le serveur. Seuls les formats JPEG, PNG et WebP sont acceptés.`);
+    }
+    
+    // Generic error
+    console.error('❌ SERVER ERROR: Generic storage error');
+    return new Error(`Erreur serveur lors du téléchargement: ${error.message}
+
+Platform: ${Platform.OS}
+Bucket: ${this.bucketName}
+
+Si cette erreur persiste, vérifiez :
+1. La configuration de votre bucket Supabase
+2. Les politiques RLS (voir README.md section "Storage Setup")
+3. Votre connexion internet
+4. Les logs de votre projet Supabase pour plus de détails`);
   }
 
   async deleteImage(fileName: string): Promise<void> {
     try {
+      console.log('🗑️ CLIENT: Deleting image:', fileName);
+      
       const { error } = await supabase.storage
         .from(this.bucketName)
         .remove([fileName]);
 
       if (error) {
+        console.error('❌ SERVER ERROR: Delete error:', error);
         if (error.message.includes('Bucket not found')) {
           throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas.`);
         }
         throw error;
       }
+      
+      console.log('✅ CLIENT: Image deleted successfully');
     } catch (error) {
-      console.error('Error deleting image:', error);
+      console.error('❌ CLIENT ERROR: Error deleting image:', error);
       throw error;
     }
   }
@@ -159,119 +275,58 @@ L'erreur indique que votre bucket existe mais n'a pas les bonnes politiques RLS 
   // Helper method to check if bucket exists
   async checkBucketExists(): Promise<boolean> {
     try {
+      console.log('🔍 CLIENT: Checking if bucket exists');
+      
       const { data: buckets, error } = await supabase.storage.listBuckets();
       
       if (error) {
-        console.error('❌ Error listing buckets:', error);
+        console.error('❌ CLIENT ERROR: Error listing buckets:', error);
         return false;
       }
 
-      return buckets?.some(bucket => bucket.name === this.bucketName) || false;
+      const bucketExists = buckets?.some(bucket => bucket.name === this.bucketName) || false;
+      console.log('📊 CLIENT: Bucket exists:', bucketExists);
+      
+      return bucketExists;
     } catch (error) {
-      console.error('❌ Error checking bucket existence:', error);
+      console.error('❌ CLIENT ERROR: Error checking bucket existence:', error);
       return false;
     }
   }
 
-  // Alternative upload method using Supabase client (fallback)
-  async uploadImageFallback(uri: string, fileName: string, mimeType?: string): Promise<string> {
-    try {
-      console.log('🔄 CLIENT: Using fallback upload method');
-      
-      // Validate content type for fallback method too
-      const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      const contentType = mimeType || 'image/jpeg';
-      
-      if (!supportedTypes.includes(contentType)) {
-        console.error('❌ CLIENT ERROR: Unsupported content type in fallback:', contentType);
-        throw new Error(`Format d'image non supporté: ${contentType}. Formats acceptés: JPEG, PNG, WebP.`);
-      }
-      
-      // Convert URI to blob for web or array buffer for mobile
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      
-      // Validate blob type as well
-      const finalContentType = contentType;
-      if (blob.type && !supportedTypes.includes(blob.type)) {
-        console.error('❌ CLIENT ERROR: Blob has unsupported type:', blob.type);
-        throw new Error(`Le fichier sélectionné a un type non supporté: ${blob.type}. Formats acceptés: JPEG, PNG, WebP.`);
-      }
-      
-      console.log('📤 CLIENT: Fallback using content type:', finalContentType);
-      console.log('📤 CLIENT: Blob details:', { type: blob.type, size: blob.size });
-      
-      const { data, error } = await supabase.storage
-        .from(this.bucketName)
-        .upload(fileName, blob, {
-          contentType: finalContentType,
-          upsert: true
-        });
-
-      if (error) {
-        console.error('❌ SERVER ERROR: Fallback upload error:', error);
-        
-        if (error.message.includes('Bucket not found') || error.message.includes('bucket') || error.message.includes('404')) {
-          console.error('❌ SERVER ERROR: Bucket not found in fallback');
-          throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas dans votre projet Supabase.
-
-🔧 SOLUTION MANUELLE REQUISE :
-1. Connectez-vous à votre tableau de bord Supabase : https://supabase.com/dashboard
-2. Sélectionnez votre projet
-3. Cliquez sur "Storage" dans le menu de gauche
-4. Cliquez sur "New bucket"
-5. Nommez le bucket exactement : "${this.bucketName}"
-6. Cochez "Public bucket" pour permettre l'accès aux images
-7. Définissez la limite de taille : 5242880 (5MB)
-8. Dans "Allowed MIME types", ajoutez : image/jpeg,image/png,image/webp
-9. Cliquez sur "Create bucket"
-10. Configurez les politiques RLS (voir README.md section "Storage Setup")
-11. Réessayez d'ajouter votre vêtement
-
-Une fois le bucket créé manuellement, l'application fonctionnera correctement.`);
-        } else if (error.message.includes('row-level security') || error.message.includes('policy') || error.message.includes('RLS')) {
-          console.error('❌ SERVER ERROR: RLS policy violation in fallback');
-          throw new Error(`Erreur de politique de sécurité : Les politiques RLS ne sont pas configurées.
-
-🔧 SOLUTION REQUISE :
-1. Allez sur votre tableau de bord Supabase : https://supabase.com/dashboard
-2. Naviguez vers Storage → ${this.bucketName} → Policies
-3. Créez les politiques RLS nécessaires (voir README.md section "Storage Setup")
-4. Assurez-vous que les utilisateurs authentifiés peuvent INSERT, SELECT et DELETE
-
-Le bucket existe mais les politiques de sécurité empêchent le téléchargement.`);
-        } else if (error.message.includes('Invalid file type') || error.message.includes('file type')) {
-          console.error('❌ SERVER ERROR: Invalid file type in fallback');
-          throw new Error(`Type de fichier invalide côté serveur. Seuls les formats JPEG, PNG et WebP sont acceptés.`);
-        } else if (error.message.includes('File size') || error.message.includes('too large')) {
-          console.error('❌ SERVER ERROR: File too large in fallback');
-          throw new Error(`Fichier trop volumineux. La taille maximale autorisée est de 5MB.`);
-        } else if (error.message.includes('Network request failed')) {
-          console.error('❌ SERVER ERROR: Network request failed in fallback');
-          throw new Error(`Erreur de réseau lors du téléchargement. Vérifiez votre connexion internet et la configuration Supabase.
-
-Si le problème persiste, vérifiez que :
-1. Votre URL Supabase est correcte dans .env
-2. Votre clé anonyme Supabase est valide
-3. Les politiques RLS sont configurées (voir README.md section "Storage Setup")`);
-        }
-        
-        throw new Error(`Erreur serveur lors du téléchargement (fallback): ${error.message}`);
-      }
-
-      console.log('✅ CLIENT: Fallback upload successful:', data);
-
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from(this.bucketName)
-        .getPublicUrl(data.path);
-
-      console.log('🔗 CLIENT: Public URL generated:', publicUrlData.publicUrl);
-      return publicUrlData.publicUrl;
-    } catch (error) {
-      console.error('❌ CLIENT ERROR: Error in fallback upload:', error);
-      throw error;
+  // Method to validate file before upload
+  validateFile(uri: string, mimeType?: string, fileSize?: number): { valid: boolean; error?: string } {
+    console.log('🔍 CLIENT: Validating file:', { uri, mimeType, fileSize, platform: Platform.OS });
+    
+    // Check file type
+    const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const contentType = mimeType || 'image/jpeg';
+    
+    if (!supportedTypes.includes(contentType)) {
+      return {
+        valid: false,
+        error: `Format d'image non supporté: ${contentType}. Formats acceptés: JPEG, PNG, WebP.`
+      };
     }
+    
+    // Check file size (5MB limit)
+    if (fileSize && fileSize > 5 * 1024 * 1024) {
+      return {
+        valid: false,
+        error: 'Fichier trop volumineux. La taille maximale autorisée est de 5MB.'
+      };
+    }
+    
+    // Check URI format
+    if (!uri || uri.trim() === '') {
+      return {
+        valid: false,
+        error: 'URI de fichier invalide.'
+      };
+    }
+    
+    console.log('✅ CLIENT: File validation passed');
+    return { valid: true };
   }
 }
 
