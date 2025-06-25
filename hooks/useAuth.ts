@@ -117,7 +117,7 @@ export function useAuth() {
 
       if (error) {
         console.error('❌ Sign in error:', error);
-        return { data, error };
+        throw error;
       }
 
       if (data.user) {
@@ -133,7 +133,7 @@ export function useAuth() {
       return { data, error };
     } catch (error) {
       console.error('❌ Unexpected error during sign in:', error);
-      return { data: null, error };
+      throw error;
     }
   };
 
@@ -153,7 +153,7 @@ export function useAuth() {
 
       if (error) {
         console.error('❌ Sign up error:', error);
-        return { data, error };
+        throw error;
       }
 
       if (data.user) {
@@ -169,7 +169,7 @@ export function useAuth() {
       return { data, error };
     } catch (error) {
       console.error('❌ Unexpected error during sign up:', error);
-      return { data: null, error };
+      throw error;
     }
   };
 

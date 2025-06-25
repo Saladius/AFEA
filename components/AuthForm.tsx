@@ -31,7 +31,7 @@ export default function AuthForm() {
         await signIn(email, password);
       }
     } catch (err: any) {
-      console.error('❌ Sign in error:', err.message);
+      console.error('❌ Auth error:', err.message);
       
       // Handle specific authentication errors
       if (err.message?.includes('Invalid login credentials') || 
@@ -39,7 +39,8 @@ export default function AuthForm() {
         setError('Email ou mot de passe incorrect. Vérifiez vos identifiants ou créez un compte.');
       } else if (err.message?.includes('Email not confirmed')) {
         setError('Veuillez confirmer votre email avant de vous connecter.');
-      } else if (err.message?.includes('User already registered')) {
+      } else if (err.message?.includes('User already registered') || 
+                 err.message?.includes('user_already_exists')) {
         setError('Un compte existe déjà avec cet email. Essayez de vous connecter.');
       } else if (err.message?.includes('Password should be at least 6 characters')) {
         setError('Le mot de passe doit contenir au moins 6 caractères.');
