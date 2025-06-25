@@ -240,6 +240,13 @@ This error occurs when the `clothes-images` storage bucket doesn't exist in your
 #### "Row Level Security Policy Violation" Error
 This error occurs when the storage bucket exists but doesn't have the proper RLS policies configured.
 
+#### Android Upload Issues
+Android users may experience upload failures due to platform-specific differences in file handling. The app now includes Android-specific upload logic that:
+- Uses ArrayBuffer for file data on Android
+- Provides detailed error logging with platform information
+- Handles network request failures gracefully
+- Validates files before upload to prevent server-side errors
+
 **Solution:**
 1. Go to your Supabase dashboard
 2. Follow the complete **Storage Setup** instructions above
