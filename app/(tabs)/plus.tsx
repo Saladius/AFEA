@@ -592,10 +592,10 @@ export default function AddItemScreen() {
             <Text style={styles.tagRowLabel}>Type</Text>
             <View style={styles.tagRowChips}>
               <View style={styles.tagChip}>
-                <Text style={styles.tagChipText}>T-shirt</Text>
+                <Text style={styles.tagChipText} numberOfLines={1}>T-shirt</Text>
               </View>
               <View style={styles.tagChip}>
-                <Text style={styles.tagChipText}>Polo</Text>
+                <Text style={styles.tagChipText} numberOfLines={1}>Polo</Text>
               </View>
             </View>
           </View>
@@ -605,10 +605,10 @@ export default function AddItemScreen() {
             <Text style={styles.tagRowLabel}>Couleur</Text>
             <View style={styles.tagRowChips}>
               <View style={styles.tagChip}>
-                <Text style={styles.tagChipText}>Bleu</Text>
+                <Text style={styles.tagChipText} numberOfLines={1}>Bleu</Text>
               </View>
               <View style={styles.tagChip}>
-                <Text style={styles.tagChipText}>Marine</Text>
+                <Text style={styles.tagChipText} numberOfLines={1}>Marine</Text>
               </View>
             </View>
           </View>
@@ -618,10 +618,10 @@ export default function AddItemScreen() {
             <Text style={styles.tagRowLabel}>Matière</Text>
             <View style={styles.tagRowChips}>
               <View style={styles.tagChip}>
-                <Text style={styles.tagChipText}>Coton</Text>
+                <Text style={styles.tagChipText} numberOfLines={1}>Coton</Text>
               </View>
               <View style={styles.tagChip}>
-                <Text style={styles.tagChipText}>Jersey</Text>
+                <Text style={styles.tagChipText} numberOfLines={1}>Jersey</Text>
               </View>
             </View>
           </View>
@@ -1319,7 +1319,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10, // Increased font size
     fontWeight: '500',
-    numberOfLines: 1,
   },
   
   // Form Section with proper spacing
