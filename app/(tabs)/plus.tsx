@@ -1461,7 +1461,7 @@ const styles = StyleSheet.create({
     gap: 12, // Increased gap
   },
   modifyButton: {
-    flex: 1, // FIXED: Changed from flex: 1 to smaller proportion
+    flex: 1, // Equal width with addToWardrobeButton
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingVertical: 16, // Increased padding
@@ -1475,7 +1475,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   addToWardrobeButton: {
-    flex: 2, // FIXED: Changed to flex: 2 to make it wider than Retour button
+    flex: 1, // Equal width with modifyButton
     backgroundColor: '#EE7518',
     borderRadius: 12,
     paddingVertical: 16, // Increased padding
