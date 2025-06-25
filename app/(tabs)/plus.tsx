@@ -107,16 +107,17 @@ export default function AddItemScreen() {
     { label: 'Style', value: 'Décontracté', editable: true, key: 'style' },
     { label: 'Taille', value: 'M', editable: true, key: 'size' },
   ]);
-      // Show success message
-      setShowSuccessMessage(true);
-      
-      // Auto-hide success message after 4 seconds
-      setTimeout(() => {
-        setShowSuccessMessage(false);
-        resetForm();
-      }, 4000);
 
+  const currentStepIndex = steps.findIndex(step => step.id === currentStep);
 
+  // Animate progress bar
+  useEffect(() => {
+    progressValue.value = withTiming(currentStepIndex / (steps.length - 1), { duration: 300 });
+  }, [currentStep]);
+
+  // Handle crop processing simulation
+  useEffect(() => {
+    if (currentStep === 'crop' && isProcessing) {
       // Simulate progress
       const interval = setInterval(() => {
         setProcessingProgress(prev => {
@@ -132,16 +133,6 @@ export default function AddItemScreen() {
           return prev + 2;
         });
       }, 50);
-
-      return () => clearInterval(interval);
-    }
-  }, [currentStep, isProcessing]);
-
-  // Animate crop progress
-  useEffect(() => {
-    cropProgressValue.value = withTiming(processingProgress / 100, { duration: 100 });
-  }, [processingProgress]);
-
   const progressStyle = useAnimatedStyle(() => {
     return {
       width: `${progressValue.value * 100}%`,
