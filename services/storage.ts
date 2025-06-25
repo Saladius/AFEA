@@ -4,9 +4,9 @@ import * as FileSystem from 'expo-file-system';
 class StorageService {
   private bucketName = 'clothes-images';
 
-  async uploadImage(uri: string, fileName: string): Promise<string> {
+  async uploadImage(uri: string, fileName: string, mimeType?: string): Promise<string> {
     try {
-      console.log('🔄 Starting image upload with FileSystem:', { uri, fileName });
+      console.log('🔄 Starting image upload with FileSystem:', { uri, fileName, mimeType });
       
       // Get Supabase configuration
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -15,6 +15,10 @@ class StorageService {
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Configuration Supabase manquante');
       }
+
+      // Determine content type from mimeType or default to jpeg
+      const contentType = mimeType || 'image/jpeg';
+      console.log('📤 Using content type:', contentType);
 
       // Construct the upload URL
       const uploadUrl = `${supabaseUrl}/storage/v1/object/${this.bucketName}/${fileName}`;
@@ -25,7 +29,7 @@ class StorageService {
       const result = await FileSystem.uploadAsync(uploadUrl, uri, {
         httpMethod: 'POST',
         headers: {
-          'Content-Type': 'image/jpeg',
+          'Content-Type': contentType,
           'Authorization': `Bearer ${supabaseAnonKey}`,
         },
         uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
@@ -53,6 +57,8 @@ class StorageService {
 10. Réessayez d'ajouter votre vêtement
 
 Une fois le bucket créé manuellement, l'application fonctionnera correctement.`);
+        } else if (result.status === 400) {
+          throw new Error(`Erreur de format d'image. Vérifiez que le fichier est une image valide (JPEG, PNG, WebP).`);
         }
         
         throw new Error(`Erreur lors du téléchargement: ${result.status}`);
@@ -68,7 +74,14 @@ Une fois le bucket créé manuellement, l'application fonctionnera correctement.
 
     } catch (error) {
       console.error('❌ Error uploading image:', error);
-      throw error;
+      // Try fallback method if primary upload fails
+      console.log('🔄 Attempting fallback upload method...');
+      try {
+        return await this.uploadImageFallback(uri, fileName, mimeType);
+      } catch (fallbackError) {
+        console.error('❌ Fallback upload also failed:', fallbackError);
+        throw error; // Throw original error
+      }
     }
   }
 
@@ -114,7 +127,7 @@ Une fois le bucket créé manuellement, l'application fonctionnera correctement.
   }
 
   // Alternative upload method using Supabase client (fallback)
-  async uploadImageFallback(uri: string, fileName: string): Promise<string> {
+  async uploadImageFallback(uri: string, fileName: string, mimeType?: string): Promise<string> {
     try {
       console.log('🔄 Using fallback upload method');
       
@@ -122,10 +135,14 @@ Une fois le bucket créé manuellement, l'application fonctionnera correctement.
       const response = await fetch(uri);
       const blob = await response.blob();
       
+      // Determine content type from mimeType, blob type, or default to jpeg
+      const contentType = mimeType || blob.type || 'image/jpeg';
+      console.log('📤 Fallback using content type:', contentType);
+      
       const { data, error } = await supabase.storage
         .from(this.bucketName)
         .upload(fileName, blob, {
-          contentType: 'image/jpeg',
+          contentType: contentType,
           upsert: true
         });
 

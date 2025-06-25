@@ -117,7 +117,7 @@ export function useAuth() {
 
       if (error) {
         console.error('❌ Sign in error:', error);
-        throw error;
+        return { data, error };
       }
 
       if (data.user) {
@@ -133,7 +133,12 @@ export function useAuth() {
       return { data, error };
     } catch (error) {
       console.error('❌ Unexpected error during sign in:', error);
-      throw error;
+      return { 
+        data: null, 
+        error: { 
+          message: error instanceof Error ? error.message : 'Erreur de connexion inattendue' 
+        } 
+      };
     }
   };
 
@@ -153,7 +158,7 @@ export function useAuth() {
 
       if (error) {
         console.error('❌ Sign up error:', error);
-        throw error;
+        return { data, error };
       }
 
       if (data.user) {
@@ -169,7 +174,12 @@ export function useAuth() {
       return { data, error };
     } catch (error) {
       console.error('❌ Unexpected error during sign up:', error);
-      throw error;
+      return { 
+        data: null, 
+        error: { 
+          message: error instanceof Error ? error.message : 'Erreur de création de compte inattendue' 
+        } 
+      };
     }
   };
 

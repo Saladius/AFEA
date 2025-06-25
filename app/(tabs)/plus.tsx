@@ -74,6 +74,7 @@ export default function AddItemScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [editingField, setEditingField] = useState<string | null>(null);
+  const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>('image/jpeg');
   const progressValue = useSharedValue(0);
   const cropProgressValue = useSharedValue(0);
   const pulseValue = useSharedValue(1);
@@ -197,6 +198,8 @@ export default function AddItemScreen() {
 
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
+        // Store the mimeType for later use in upload
+        setSelectedImageMimeType(result.assets[0].mimeType || 'image/jpeg');
         setCurrentStep('crop');
         setIsProcessing(true);
         setProcessingProgress(0);
@@ -240,7 +243,7 @@ export default function AddItemScreen() {
       const fileName = storageService.generateFileName(user.id);
       console.log('📁 Generated filename:', fileName);
       
-      const imageUrl = await storageService.uploadImage(selectedImage, fileName);
+      const imageUrl = await storageService.uploadImage(selectedImage, fileName, selectedImageMimeType);
       console.log('📤 Image uploaded successfully:', imageUrl);
 
       // Prepare clothing item data
@@ -311,6 +314,7 @@ export default function AddItemScreen() {
   const resetForm = () => {
     setCurrentStep('photo');
     setSelectedImage(null);
+    setSelectedImageMimeType('image/jpeg');
     setClothingName('T-shirt bleu basique');
     setSelectedSeason('all');
     setBrandName('');

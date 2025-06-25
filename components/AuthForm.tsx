@@ -72,10 +72,24 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
       }
 
       if (result.error) {
-        if (mode === 'signin') {
-          setError('Identifiants incorrects. Veuillez réessayer.');
+        // Handle specific authentication errors
+        if (result.error.message.includes('Invalid login credentials')) {
+          setError('Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.');
+        } else if (result.error.message.includes('Email not confirmed')) {
+          setError('Veuillez confirmer votre email avant de vous connecter.');
+        } else if (result.error.message.includes('User already registered')) {
+          setError('Un compte existe déjà avec cet email. Essayez de vous connecter.');
+        } else if (result.error.message.includes('Password should be at least')) {
+          setError('Le mot de passe doit contenir au moins 6 caractères.');
+        } else if (result.error.message.includes('Unable to validate email address')) {
+          setError('Format d\'email invalide. Veuillez vérifier votre adresse email.');
         } else {
-          setError(result.error.message);
+          // Generic error message for other cases
+          if (mode === 'signin') {
+            setError('Erreur de connexion. Vérifiez vos identifiants et réessayez.');
+          } else {
+            setError('Erreur lors de la création du compte. Veuillez réessayer.');
+          }
         }
       } else if (mode === 'signup') {
         Alert.alert(
@@ -88,7 +102,12 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
         router.replace('/(tabs)');
       }
     } catch (err) {
-      setError('Une erreur est survenue. Veuillez réessayer.');
+      console.error('❌ Unexpected auth error:', err);
+      if (mode === 'signin') {
+        setError('Erreur de connexion. Vérifiez votre connexion internet et réessayez.');
+      } else {
+        setError('Erreur lors de la création du compte. Vérifiez votre connexion internet et réessayez.');
+      }
     } finally {
       setLoading(false);
     }
