@@ -2,10 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  ScrollView,
   Image,
   Alert,
   Platform,
@@ -1256,11 +1256,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 24, // Increased spacing
     gap: 16, // Increased gap
-    height: 140, // Increased height for better proportions
+    height: 180, // INCREASED HEIGHT from 140 to 180
   },
   leftImageContainer: {
-    width: 120, // Increased width
-    height: 140, // Increased height
+    width: 140, // INCREASED WIDTH from 120 to 140
+    height: 180, // INCREASED HEIGHT from 140 to 180
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
@@ -1276,10 +1276,10 @@ const styles = StyleSheet.create({
   },
   rightTagsCard: {
     flex: 1,
-    height: 140, // Increased height
+    height: 180, // INCREASED HEIGHT from 140 to 180
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16, // Increased padding
+    padding: 20, // INCREASED PADDING from 16 to 20
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1288,36 +1288,36 @@ const styles = StyleSheet.create({
     overflow: 'hidden', // CRITICAL: Ensures tags stay within the card
   },
   tagsCardTitle: {
-    fontSize: 14, // Increased font size
+    fontSize: 16, // INCREASED FONT SIZE from 14 to 16
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 12, // Increased spacing
+    marginBottom: 16, // INCREASED SPACING from 12 to 16
   },
   tagRow: {
-    marginBottom: 8, // Increased spacing
+    marginBottom: 12, // INCREASED SPACING from 8 to 12
   },
   tagRowLabel: {
-    fontSize: 11, // Increased font size
+    fontSize: 12, // INCREASED FONT SIZE from 11 to 12
     fontWeight: '500',
     color: '#8E8E93',
-    marginBottom: 4, // Increased spacing
+    marginBottom: 6, // INCREASED SPACING from 4 to 6
   },
   tagRowChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 4, // Increased gap
+    gap: 6, // INCREASED GAP from 4 to 6
     maxWidth: '100%',
   },
   tagChip: {
     backgroundColor: '#EE7518',
-    borderRadius: 10, // Increased border radius
-    paddingHorizontal: 8, // Increased padding
-    paddingVertical: 4, // Increased padding
+    borderRadius: 12, // INCREASED BORDER RADIUS from 10 to 12
+    paddingHorizontal: 10, // INCREASED PADDING from 8 to 10
+    paddingVertical: 6, // INCREASED PADDING from 4 to 6
     maxWidth: '48%',
   },
   tagChipText: {
     color: '#FFFFFF',
-    fontSize: 10, // Increased font size
+    fontSize: 11, // INCREASED FONT SIZE from 10 to 11
     fontWeight: '500',
   },
   
