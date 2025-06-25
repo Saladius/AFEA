@@ -624,7 +624,7 @@ export default function AddItemScreen() {
         </View>
       </View>
 
-      {/* Form inputs below - More compact */}
+      {/* Form inputs below - Compact and fits on screen */}
       <View style={styles.formSection}>
         {/* Clothing Name Input */}
         <View style={styles.inputSection}>
@@ -937,14 +937,14 @@ const styles = StyleSheet.create({
   },
   stepIndicator: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 20,
   },
   progressBarContainer: {
     height: 3,
     backgroundColor: '#E5E2E1',
     borderRadius: 2,
-    marginBottom: 12,
+    marginBottom: 8,
     overflow: 'hidden',
   },
   progressBarBackground: {
@@ -969,13 +969,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: '#E5E2E1',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   stepCircleActive: {
     backgroundColor: '#EE7518',
@@ -989,7 +989,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   stepNumber: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
     color: '#8E8E93',
   },
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   stepTitle: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '500',
     color: '#8E8E93',
     textAlign: 'center',
@@ -1011,13 +1011,13 @@ const styles = StyleSheet.create({
   },
   stepContent: {
     flex: 1,
-    padding: 16,
+    padding: 12,
   },
   photoContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   photoPlaceholder: {
-    height: 200,
+    height: 180,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: '#E5E2E1',
@@ -1028,7 +1028,7 @@ const styles = StyleSheet.create({
   },
   selectedImage: {
     width: '100%',
-    height: 200,
+    height: 180,
     borderRadius: 16,
   },
   cameraIconContainer: {
@@ -1054,13 +1054,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   actionButtons: {
-    gap: 10,
-    marginBottom: 20,
+    gap: 8,
+    marginBottom: 16,
   },
   primaryButton: {
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1095,7 +1095,7 @@ const styles = StyleSheet.create({
   tipsSection: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1106,12 +1106,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   tipItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   tipIcon: {
     width: 32,
@@ -1214,7 +1214,7 @@ const styles = StyleSheet.create({
   },
   cropInstructions: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 16,
   },
   instructionTitle: {
     fontSize: 18,
@@ -1229,16 +1229,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  // Horizontal Layout Styles - More compact
+  // Horizontal Layout Styles - Exact match to design
   horizontalContainer: {
     flexDirection: 'row',
-    marginBottom: 16,
-    gap: 12,
+    marginBottom: 12,
+    gap: 8,
   },
   leftImageContainer: {
-    width: 100,
-    height: 130,
-    borderRadius: 12,
+    width: 80,
+    height: 100,
+    borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
@@ -1254,8 +1254,8 @@ const styles = StyleSheet.create({
   rightTagsCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 8,
+    padding: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1263,72 +1263,72 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   tagsCardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    marginBottom: 12,
-  },
-  tagRow: {
-    marginBottom: 8,
-  },
-  tagRowLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#8E8E93',
-    marginBottom: 4,
-  },
-  tagRowChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-  tagChip: {
-    backgroundColor: '#EE7518',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  tagChipText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  
-  // Form Section - More compact
-  formSection: {
-    gap: 12,
-  },
-  inputSection: {
-    marginBottom: 12,
-  },
-  inputLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#1C1C1E',
     marginBottom: 6,
   },
+  tagRow: {
+    marginBottom: 4,
+  },
+  tagRowLabel: {
+    fontSize: 9,
+    fontWeight: '500',
+    color: '#8E8E93',
+    marginBottom: 2,
+  },
+  tagRowChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 2,
+  },
+  tagChip: {
+    backgroundColor: '#EE7518',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  tagChipText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '500',
+  },
+  
+  // Form Section - Compact to fit on screen
+  formSection: {
+    gap: 8,
+  },
+  inputSection: {
+    marginBottom: 8,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 4,
+  },
   textInput: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 12,
     color: '#1C1C1E',
     borderWidth: 1,
     borderColor: '#E5E2E1',
   },
   
-  // Season Selection - More compact
+  // Season Selection - Compact
   seasonContainer: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 4,
     flexWrap: 'wrap',
   },
   seasonChip: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderWidth: 1,
     borderColor: '#E5E2E1',
   },
@@ -1337,7 +1337,7 @@ const styles = StyleSheet.create({
     borderColor: '#EE7518',
   },
   seasonChipText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '500',
     color: '#8E8E93',
   },
@@ -1347,21 +1347,21 @@ const styles = StyleSheet.create({
 
   errorMessage: {
     backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 8,
+    padding: 8,
     borderWidth: 1,
     borderColor: '#FECACA',
-    marginTop: 12,
+    marginTop: 8,
   },
   confirmContainer: {
     alignItems: 'center',
   },
   finalPreview: {
-    width: 140,
-    height: 140,
+    width: 120,
+    height: 120,
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -1374,13 +1374,13 @@ const styles = StyleSheet.create({
   },
   itemDetails: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   itemTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#1C1C1E',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   itemSubtitle: {
     fontSize: 14,
@@ -1391,7 +1391,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1402,7 +1402,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
   },
@@ -1417,20 +1417,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bottomActions: {
-    padding: 16,
+    padding: 12,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E2E1',
   },
   tagsActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   modifyButton: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E2E1',
@@ -1444,7 +1444,7 @@ const styles = StyleSheet.create({
     flex: 2,
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
     shadowColor: '#EE7518',
     shadowOffset: { width: 0, height: 2 },
@@ -1464,13 +1464,13 @@ const styles = StyleSheet.create({
   },
   cropActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   cancelButton: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E2E1',
@@ -1484,7 +1484,7 @@ const styles = StyleSheet.create({
     flex: 2,
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
     shadowColor: '#EE7518',
     shadowOffset: { width: 0, height: 2 },
@@ -1500,7 +1500,7 @@ const styles = StyleSheet.create({
   continueButton: {
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
