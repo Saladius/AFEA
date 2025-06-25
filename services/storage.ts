@@ -1,99 +1,71 @@
 import { supabase } from '@/lib/supabase';
+import * as FileSystem from 'expo-file-system';
 
 class StorageService {
   private bucketName = 'clothes-images';
 
   async uploadImage(uri: string, fileName: string): Promise<string> {
     try {
-      console.log('🔄 Starting image upload:', { uri, fileName });
+      console.log('🔄 Starting image upload with FileSystem:', { uri, fileName });
       
-      // For web platform, handle differently
-      if (typeof window !== 'undefined') {
-        // Web platform - convert URI to blob
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        
-        console.log('📦 Blob created:', { size: blob.size, type: blob.type });
-        
-        const { data, error } = await supabase.storage
-          .from(this.bucketName)
-          .upload(fileName, blob, {
-            contentType: blob.type || 'image/jpeg',
-            upsert: true
-          });
-
-        if (error) {
-          console.error('❌ Upload error:', error);
-          
-          // Handle specific bucket not found error
-          if (error.message.includes('Bucket not found') || error.message.includes('bucket') || error.message.includes('404')) {
-            throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas dans votre projet Supabase.
-
-Pour résoudre ce problème :
-1. Connectez-vous à votre tableau de bord Supabase
-2. Allez dans la section "Storage" 
-3. Cliquez sur "New bucket"
-4. Créez un bucket nommé exactement : "${this.bucketName}"
-5. Configurez-le comme "Public bucket" pour permettre l'accès aux images
-6. Définissez une limite de taille de fichier (recommandé : 5MB)
-7. Autorisez les types MIME : image/jpeg, image/png, image/webp
-
-Une fois le bucket créé, réessayez d'ajouter votre vêtement.`);
-          }
-          
-          throw new Error(`Erreur lors du téléchargement: ${error.message}`);
-        }
-
-        console.log('✅ Upload successful:', data);
-
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage
-          .from(this.bucketName)
-          .getPublicUrl(data.path);
-
-        console.log('🔗 Public URL generated:', publicUrlData.publicUrl);
-        return publicUrlData.publicUrl;
-      } else {
-        // Mobile platform - handle as before
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        const arrayBuffer = await blob.arrayBuffer();
-
-        const { data, error } = await supabase.storage
-          .from(this.bucketName)
-          .upload(fileName, arrayBuffer, {
-            contentType: 'image/jpeg',
-            upsert: true
-          });
-
-        if (error) {
-          console.error('❌ Upload error:', error);
-          
-          // Handle specific bucket not found error
-          if (error.message.includes('Bucket not found') || error.message.includes('bucket') || error.message.includes('404')) {
-            throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas dans votre projet Supabase.
-
-Pour résoudre ce problème :
-1. Connectez-vous à votre tableau de bord Supabase
-2. Allez dans la section "Storage" 
-3. Cliquez sur "New bucket"
-4. Créez un bucket nommé exactement : "${this.bucketName}"
-5. Configurez-le comme "Public bucket" pour permettre l'accès aux images
-6. Définissez une limite de taille de fichier (recommandé : 5MB)
-7. Autorisez les types MIME : image/jpeg, image/png, image/webp
-
-Une fois le bucket créé, réessayez d'ajouter votre vêtement.`);
-          }
-          
-          throw new Error(`Erreur lors du téléchargement: ${error.message}`);
-        }
-
-        const { data: publicUrlData } = supabase.storage
-          .from(this.bucketName)
-          .getPublicUrl(data.path);
-
-        return publicUrlData.publicUrl;
+      // Get Supabase configuration
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Configuration Supabase manquante');
       }
+
+      // Construct the upload URL
+      const uploadUrl = `${supabaseUrl}/storage/v1/object/${this.bucketName}/${fileName}`;
+      
+      console.log('📤 Upload URL:', uploadUrl);
+
+      // Upload using FileSystem
+      const result = await FileSystem.uploadAsync(uploadUrl, uri, {
+        httpMethod: 'POST',
+        headers: {
+          'Content-Type': 'image/jpeg',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+        },
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+      });
+
+      console.log('📤 Upload result:', result);
+
+      if (result.status !== 200) {
+        console.error('❌ Upload failed with status:', result.status);
+        
+        // Handle specific error cases
+        if (result.status === 404) {
+          throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas dans votre projet Supabase.
+
+🔧 SOLUTION MANUELLE REQUISE :
+1. Connectez-vous à votre tableau de bord Supabase : https://supabase.com/dashboard
+2. Sélectionnez votre projet
+3. Cliquez sur "Storage" dans le menu de gauche
+4. Cliquez sur "New bucket"
+5. Nommez le bucket exactement : "${this.bucketName}"
+6. Cochez "Public bucket" pour permettre l'accès aux images
+7. Définissez la limite de taille : 5242880 (5MB)
+8. Dans "Allowed MIME types", ajoutez : image/jpeg,image/png,image/webp
+9. Cliquez sur "Create bucket"
+10. Réessayez d'ajouter votre vêtement
+
+Une fois le bucket créé manuellement, l'application fonctionnera correctement.`);
+        }
+        
+        throw new Error(`Erreur lors du téléchargement: ${result.status}`);
+      }
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from(this.bucketName)
+        .getPublicUrl(fileName);
+
+      console.log('🔗 Public URL generated:', publicUrlData.publicUrl);
+      return publicUrlData.publicUrl;
+
     } catch (error) {
       console.error('❌ Error uploading image:', error);
       throw error;
@@ -138,6 +110,61 @@ Une fois le bucket créé, réessayez d'ajouter votre vêtement.`);
     } catch (error) {
       console.error('❌ Error checking bucket existence:', error);
       return false;
+    }
+  }
+
+  // Alternative upload method using Supabase client (fallback)
+  async uploadImageFallback(uri: string, fileName: string): Promise<string> {
+    try {
+      console.log('🔄 Using fallback upload method');
+      
+      // Convert URI to blob for web or array buffer for mobile
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      
+      const { data, error } = await supabase.storage
+        .from(this.bucketName)
+        .upload(fileName, blob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+
+      if (error) {
+        console.error('❌ Fallback upload error:', error);
+        
+        if (error.message.includes('Bucket not found') || error.message.includes('bucket') || error.message.includes('404')) {
+          throw new Error(`Le bucket de stockage "${this.bucketName}" n'existe pas dans votre projet Supabase.
+
+🔧 SOLUTION MANUELLE REQUISE :
+1. Connectez-vous à votre tableau de bord Supabase : https://supabase.com/dashboard
+2. Sélectionnez votre projet
+3. Cliquez sur "Storage" dans le menu de gauche
+4. Cliquez sur "New bucket"
+5. Nommez le bucket exactement : "${this.bucketName}"
+6. Cochez "Public bucket" pour permettre l'accès aux images
+7. Définissez la limite de taille : 5242880 (5MB)
+8. Dans "Allowed MIME types", ajoutez : image/jpeg,image/png,image/webp
+9. Cliquez sur "Create bucket"
+10. Réessayez d'ajouter votre vêtement
+
+Une fois le bucket créé manuellement, l'application fonctionnera correctement.`);
+        }
+        
+        throw new Error(`Erreur lors du téléchargement: ${error.message}`);
+      }
+
+      console.log('✅ Fallback upload successful:', data);
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from(this.bucketName)
+        .getPublicUrl(data.path);
+
+      console.log('🔗 Public URL generated:', publicUrlData.publicUrl);
+      return publicUrlData.publicUrl;
+    } catch (error) {
+      console.error('❌ Error in fallback upload:', error);
+      throw error;
     }
   }
 }
