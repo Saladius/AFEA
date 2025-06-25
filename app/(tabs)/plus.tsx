@@ -1229,15 +1229,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  // Horizontal Layout Styles - Exact match to design
+  // Horizontal Layout Styles - Exact match to design with same height
   horizontalContainer: {
     flexDirection: 'row',
     marginBottom: 12,
     gap: 8,
+    height: 120, // Fixed height to ensure both elements match
   },
   leftImageContainer: {
-    width: 80,
-    height: 100,
+    width: 100,
+    height: 120, // Same height as tags card
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
@@ -1253,6 +1254,7 @@ const styles = StyleSheet.create({
   },
   rightTagsCard: {
     flex: 1,
+    height: 120, // Same height as image container
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: 8,
