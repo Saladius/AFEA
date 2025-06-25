@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View,
+  View, 
   Text,
   ScrollView,
   StyleSheet,
@@ -81,6 +81,7 @@ export default function AddItemScreen() {
   const progressValue = useSharedValue(0);
   const cropProgressValue = useSharedValue(0);
   const pulseValue = useSharedValue(1);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   // Form state for the new design
   const [clothingName, setClothingName] = useState('T-shirt bleu basique');
@@ -106,25 +107,15 @@ export default function AddItemScreen() {
     { label: 'Style', value: 'Décontracté', editable: true, key: 'style' },
     { label: 'Taille', value: 'M', editable: true, key: 'size' },
   ]);
+      // Show success message
+      setShowSuccessMessage(true);
+      
+      // Auto-hide success message after 4 seconds
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        resetForm();
+      }, 4000);
 
-  const currentStepIndex = steps.findIndex(step => step.id === currentStep);
-
-  React.useEffect(() => {
-    progressValue.value = withSpring((currentStepIndex + 1) / steps.length);
-  }, [currentStep, currentStepIndex]);
-
-  // Simulate automatic cropping process
-  useEffect(() => {
-    if (currentStep === 'crop' && isProcessing) {
-      // Start pulse animation
-      pulseValue.value = withRepeat(
-        withSequence(
-          withTiming(1.1, { duration: 800 }),
-          withTiming(1, { duration: 800 })
-        ),
-        -1,
-        true
-      );
 
       // Simulate progress
       const interval = setInterval(() => {
@@ -368,6 +359,7 @@ export default function AddItemScreen() {
     setIsSaving(false);
     setProcessingProgress(0);
     setEditingField(null);
+    setShowSuccessMessage(false);
   };
 
   const handleSuccessAction = (action: 'wardrobe' | 'another') => {
@@ -821,6 +813,47 @@ export default function AddItemScreen() {
     }
   };
 
+  // Success Message Component
+  const renderSuccessMessage = () => {
+    if (!showSuccessMessage) return null;
+
+    return (
+      <View style={styles.successOverlay}>
+        <Animated.View style={[styles.successCard, { opacity: 1 }]}>
+          <View style={styles.successIconContainer}>
+            <Check size={32} color="#FFFFFF" />
+          </View>
+          <Text style={styles.successTitle}>Article ajouté !</Text>
+          <Text style={styles.successSubtitle}>
+            Votre vêtement a été ajouté à votre garde-robe avec succès
+          </Text>
+          
+          <View style={styles.successActions}>
+            <TouchableOpacity
+              style={styles.successSecondaryButton}
+              onPress={() => {
+                setShowSuccessMessage(false);
+                resetForm();
+              }}
+            >
+              <Text style={styles.successSecondaryButtonText}>Ajouter un autre</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.successPrimaryButton}
+              onPress={() => {
+                setShowSuccessMessage(false);
+                router.replace('/(tabs)/wardrobe');
+              }}
+            >
+              <Text style={styles.successPrimaryButtonText}>Voir ma garde-robe</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </View>
+    );
+  };
+
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
@@ -839,6 +872,9 @@ export default function AddItemScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Success Message Overlay */}
+      {renderSuccessMessage()}
+      
       <StatusBar style="dark" />
       {/* Header with spacing */}
       <View style={styles.header}>
@@ -1665,6 +1701,92 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     backgroundColor: '#10B981',
+  },
+
+  // Success Message Styles
+  successOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    paddingHorizontal: 24,
+  },
+  successCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    maxWidth: 320,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  successIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  successActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  successSecondaryButton: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  successSecondaryButtonText: {
+    color: '#8E8E93',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  successPrimaryButton: {
+    flex: 1,
+    backgroundColor: '#EE7518',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    shadowColor: '#EE7518',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  successPrimaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   // Success Modal Styles
