@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Filter } from 'lucide-react-native';
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Filter, Search } from 'lucide-react-native';
 import { useEvents } from '@/hooks/useEvents';
 import { Event, EventType, EventStatus } from '@/types/database';
 
@@ -31,6 +31,7 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<EventType | 'all'>('all');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<EventStatus | 'all'>('all');
 
   const months = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -45,6 +46,13 @@ export default function CalendarScreen() {
     { key: 'formal', label: 'Formel', color: '#3B82F6' },
     { key: 'sport', label: 'Sport', color: '#F59E0B' },
     { key: 'party', label: 'Fête', color: '#EC4899' },
+  ] as const;
+
+  const statusFilters = [
+    { key: 'all', label: 'Tous', color: '#8E8E93' },
+    { key: 'ready', label: 'Prêt', color: '#10B981' },
+    { key: 'preparing', label: 'À préparer', color: '#F59E0B' },
+    { key: 'generate', label: 'À générer', color: '#EE7518' },
   ] as const;
 
   useEffect(() => {
@@ -192,37 +200,16 @@ export default function CalendarScreen() {
     return `${hours}:${minutes}`;
   };
 
-  const getWeekDatesWithEvents = () => {
-    const today = new Date();
-    const currentWeekStart = new Date(today);
-    currentWeekStart.setDate(today.getDate() - today.getDay());
-    
-    const weekDates = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(currentWeekStart);
-      date.setDate(currentWeekStart.getDate() + i);
-      const dayEvents = getEventsForDate(date);
-      
-      if (dayEvents.length > 0) {
-        weekDates.push({
-          date,
-          events: dayEvents,
-          dayName: weekDays[i],
-          dayNumber: date.getDate(),
-          isToday: isSameDay(date, today)
-        });
-      }
-    }
-    
-    return weekDates;
-  };
-
   const getFilteredUpcomingEvents = () => {
     const today = new Date().toISOString().split('T')[0];
     let filteredEvents = events.filter(event => event.event_date >= today);
     
     if (selectedFilter !== 'all') {
       filteredEvents = filteredEvents.filter(event => event.event_type === selectedFilter);
+    }
+
+    if (selectedStatusFilter !== 'all') {
+      filteredEvents = filteredEvents.filter(event => event.status === selectedStatusFilter);
     }
     
     return filteredEvents
@@ -232,15 +219,13 @@ export default function CalendarScreen() {
           return a.event_time.localeCompare(b.event_time);
         }
         return dateCompare;
-      })
-      .slice(0, 10);
+      });
   };
 
   const handleEventPress = (event: Event) => {
     router.push(`/(tabs)/event-details?id=${event.id}`);
   };
 
-  const weekDatesWithEvents = getWeekDatesWithEvents();
   const upcomingEvents = getFilteredUpcomingEvents();
 
   if (loading) {
@@ -277,135 +262,21 @@ export default function CalendarScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Calendar Widget */}
-        <View style={styles.calendarSection}>
-          {/* Month Navigation */}
-          <View style={styles.monthHeader}>
-            <TouchableOpacity
-              style={styles.navButton}
-              onPress={() => navigateMonth('prev')}
-            >
-              <ChevronLeft size={20} color="#8E8E93" />
-            </TouchableOpacity>
-            
-            <Text style={styles.monthTitle}>
-              {months[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </Text>
-            
-            <TouchableOpacity
-              style={styles.navButton}
-              onPress={() => navigateMonth('next')}
-            >
-              <ChevronRight size={20} color="#8E8E93" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Week Days Header */}
-          <View style={styles.weekHeader}>
-            {weekDays.map((day) => (
-              <Text key={day} style={styles.weekDay}>
-                {day}
-              </Text>
-            ))}
-          </View>
-
-          {/* Calendar Grid */}
-          <View style={styles.calendarGrid}>
-            {calendarDays.map((day, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.calendarDay,
-                  !day.isCurrentMonth && styles.calendarDayInactive,
-                  day.isToday && styles.calendarDayToday,
-                ]}
-                onPress={() => handleDayPress(day, index)}
-              >
-                <Text style={[
-                  styles.calendarDayText,
-                  !day.isCurrentMonth && styles.calendarDayTextInactive,
-                  day.isToday && styles.calendarDayTextToday,
-                ]}>
-                  {day.date}
-                </Text>
-                {day.hasEvents && (
-                  <View style={styles.eventDot} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* This Week's Events */}
-        {weekDatesWithEvents.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📍 Cette semaine</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekEventsScroll}>
-              {weekDatesWithEvents.map((dayData, index) => (
-                <View key={index} style={styles.weekEventCard}>
-                  <View style={styles.weekEventHeader}>
-                    <Text style={[
-                      styles.weekEventDay,
-                      dayData.isToday && styles.weekEventDayToday
-                    ]}>
-                      {dayData.dayName}
-                    </Text>
-                    <Text style={[
-                      styles.weekEventDate,
-                      dayData.isToday && styles.weekEventDateToday
-                    ]}>
-                      {dayData.dayNumber}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.weekEventsList}>
-                    {dayData.events.slice(0, 2).map((event) => {
-                      const statusConfig = getStatusConfig(event.status);
-                      return (
-                        <TouchableOpacity
-                          key={event.id}
-                          style={styles.weekEventItem}
-                          onPress={() => handleEventPress(event)}
-                        >
-                          <Text style={styles.weekEventIcon}>
-                            {getEventTypeIcon(event.event_type)}
-                          </Text>
-                          <View style={styles.weekEventInfo}>
-                            <Text style={styles.weekEventTitle} numberOfLines={1}>
-                              {event.title}
-                            </Text>
-                            <Text style={styles.weekEventTime}>
-                              {formatTime(event.event_time)}
-                            </Text>
-                          </View>
-                          <View style={[
-                            styles.weekEventStatus,
-                            { backgroundColor: statusConfig.backgroundColor }
-                          ]}>
-                            <Text style={styles.weekEventStatusDot}>•</Text>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                    {dayData.events.length > 2 && (
-                      <Text style={styles.moreEventsText}>
-                        +{dayData.events.length - 2} autres
-                      </Text>
-                    )}
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Event Type Filters */}
+        {/* Events List Section - Now on top */}
         <View style={styles.section}>
-          <View style={styles.filtersHeader}>
+          <View style={styles.eventsHeader}>
             <Text style={styles.sectionTitle}>🗓️ Événements à venir</Text>
-            <Filter size={20} color="#8E8E93" />
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.searchButton}>
+                <Search size={20} color="#8E8E93" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.filterButton}>
+                <Filter size={20} color="#8E8E93" />
+              </TouchableOpacity>
+            </View>
           </View>
           
+          {/* Event Type Filters */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
             {eventTypeFilters.map((filter) => (
               <TouchableOpacity
@@ -426,10 +297,30 @@ export default function CalendarScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-        </View>
 
-        {/* Upcoming Events List */}
-        <View style={styles.section}>
+          {/* Status Filters */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
+            {statusFilters.map((filter) => (
+              <TouchableOpacity
+                key={filter.key}
+                style={[
+                  styles.filterChip,
+                  selectedStatusFilter === filter.key && styles.filterChipActive,
+                  selectedStatusFilter === filter.key && { backgroundColor: filter.color }
+                ]}
+                onPress={() => setSelectedStatusFilter(filter.key)}
+              >
+                <Text style={[
+                  styles.filterChipText,
+                  selectedStatusFilter === filter.key && styles.filterChipTextActive
+                ]}>
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Events List */}
           {upcomingEvents.length > 0 ? (
             <View style={styles.eventsList}>
               {upcomingEvents.map((event) => {
@@ -516,6 +407,67 @@ export default function CalendarScreen() {
             </View>
           )}
         </View>
+
+        {/* Calendar Widget - Now below events list */}
+        <View style={styles.calendarSection}>
+          <Text style={styles.sectionTitle}>📍 Vue calendrier</Text>
+          
+          {/* Month Navigation */}
+          <View style={styles.monthHeader}>
+            <TouchableOpacity
+              style={styles.navButton}
+              onPress={() => navigateMonth('prev')}
+            >
+              <ChevronLeft size={20} color="#8E8E93" />
+            </TouchableOpacity>
+            
+            <Text style={styles.monthTitle}>
+              {months[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </Text>
+            
+            <TouchableOpacity
+              style={styles.navButton}
+              onPress={() => navigateMonth('next')}
+            >
+              <ChevronRight size={20} color="#8E8E93" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Week Days Header */}
+          <View style={styles.weekHeader}>
+            {weekDays.map((day) => (
+              <Text key={day} style={styles.weekDay}>
+                {day}
+              </Text>
+            ))}
+          </View>
+
+          {/* Calendar Grid */}
+          <View style={styles.calendarGrid}>
+            {calendarDays.map((day, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.calendarDay,
+                  !day.isCurrentMonth && styles.calendarDayInactive,
+                  day.isToday && styles.calendarDayToday,
+                ]}
+                onPress={() => handleDayPress(day, index)}
+              >
+                <Text style={[
+                  styles.calendarDayText,
+                  !day.isCurrentMonth && styles.calendarDayTextInactive,
+                  day.isToday && styles.calendarDayTextToday,
+                ]}>
+                  {day.date}
+                </Text>
+                {day.hasEvents && (
+                  <View style={styles.eventDot} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -577,88 +529,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
 
-  // Calendar Section
-  calendarSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  monthHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  navButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F8F9FA',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  monthTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1C1C1E',
-  },
-  weekHeader: {
-    flexDirection: 'row',
-    marginBottom: 12,
-  },
-  weekDay: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#8E8E93',
-    paddingVertical: 8,
-  },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  calendarDay: {
-    width: `${100/7}%`,
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  calendarDayInactive: {
-    opacity: 0.3,
-  },
-  calendarDayToday: {
-    backgroundColor: '#EE7518',
-    borderRadius: 8,
-  },
-  calendarDayText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1C1C1E',
-  },
-  calendarDayTextInactive: {
-    color: '#C7C7CC',
-  },
-  calendarDayTextToday: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  eventDot: {
-    position: 'absolute',
-    bottom: 4,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#EE7518',
-  },
-
   // Sections
   section: {
     marginBottom: 24,
@@ -669,95 +539,31 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     marginBottom: 16,
   },
-  filtersHeader: {
+  eventsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-
-  // Week Events
-  weekEventsScroll: {
-    flexGrow: 0,
-  },
-  weekEventCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginRight: 16,
-    width: 160,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  weekEventHeader: {
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
-  },
-  weekEventDay: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8E8E93',
-    marginBottom: 2,
-  },
-  weekEventDayToday: {
-    color: '#EE7518',
-    fontWeight: '600',
-  },
-  weekEventDate: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1C1C1E',
-  },
-  weekEventDateToday: {
-    color: '#EE7518',
-  },
-  weekEventsList: {
-    gap: 8,
-  },
-  weekEventItem: {
+  headerActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
-  weekEventIcon: {
-    fontSize: 16,
-  },
-  weekEventInfo: {
-    flex: 1,
-  },
-  weekEventTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    marginBottom: 2,
-  },
-  weekEventTime: {
-    fontSize: 10,
-    color: '#8E8E93',
-  },
-  weekEventStatus: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  searchButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8F9FA',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  weekEventStatusDot: {
-    color: '#FFFFFF',
-    fontSize: 8,
-  },
-  moreEventsText: {
-    fontSize: 10,
-    color: '#8E8E93',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 4,
+  filterButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Filters
@@ -854,6 +660,88 @@ const styles = StyleSheet.create({
   eventCardStatusText: {
     fontSize: 10,
     fontWeight: '600',
+  },
+
+  // Calendar Section
+  calendarSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  monthHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  navButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1C1C1E',
+  },
+  weekHeader: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  weekDay: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8E8E93',
+    paddingVertical: 8,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDay: {
+    width: `${100/7}%`,
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  calendarDayInactive: {
+    opacity: 0.3,
+  },
+  calendarDayToday: {
+    backgroundColor: '#EE7518',
+    borderRadius: 8,
+  },
+  calendarDayText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1C1C1E',
+  },
+  calendarDayTextInactive: {
+    color: '#C7C7CC',
+  },
+  calendarDayTextToday: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  eventDot: {
+    position: 'absolute',
+    bottom: 4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#EE7518',
   },
 
   // Empty State
