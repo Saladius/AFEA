@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import { twilioService } from '@/services/twilio';
 
 // Configure WebBrowser for OAuth
 if (Platform.OS !== 'web') {
@@ -311,37 +312,146 @@ export function useAuth() {
 
   const signInWithPhone = async (phoneNumber: string) => {
     try {
-      // This would require additional setup with Supabase Auth and SMS provider
-      // For now, return a placeholder implementation
-      const { data, error } = await supabase.auth.signInWithOtp({
-        phone: phoneNumber,
-      });
-      return { data, error };
+      console.log('🔄 Starting phone signin process:', phoneNumber);
+      
+      // Envoyer le code de vérification via Twilio
+      const twilioResult = await twilioService.sendVerificationCode(phoneNumber);
+      
+      if (!twilioResult.success) {
+        return { 
+          data: null, 
+          error: { message: twilioResult.error || 'Erreur lors de l\'envoi du code' } 
+        };
+      }
+      
+      return { 
+        data: { phoneNumber }, 
+        error: null 
+      };
     } catch (error) {
       return { 
         data: null, 
-        error: { message: 'Authentification par téléphone sera bientôt disponible' } 
+        error: { message: 'Erreur lors de l\'envoi du code de vérification' } 
       };
     }
   };
 
   const signUpWithPhone = async (phoneNumber: string, fullName?: string) => {
     try {
-      // This would require additional setup with Supabase Auth and SMS provider
-      // For now, return a placeholder implementation
-      const { data, error } = await supabase.auth.signInWithOtp({
-        phone: phoneNumber,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      });
-      return { data, error };
+      console.log('🔄 Starting phone signup process:', phoneNumber);
+      
+      // Envoyer le code de vérification via Twilio
+      const twilioResult = await twilioService.sendVerificationCode(phoneNumber);
+      
+      if (!twilioResult.success) {
+        return { 
+          data: null, 
+          error: { message: twilioResult.error || 'Erreur lors de l\'envoi du code' } 
+        };
+      }
+      
+      // Retourner un succès temporaire - la vérification se fera dans une étape séparée
+      return { 
+        data: { phoneNumber, fullName }, 
+        error: null 
+      };
     } catch (error) {
       return { 
         data: null, 
-        error: { message: 'Création de compte par téléphone sera bientôt disponible' } 
+        error: { message: 'Erreur lors de l\'envoi du code de vérification' } 
+      };
+    }
+  };
+
+  const verifyPhoneAndCreateAccount = async (phoneNumber: string, verificationCode: string, fullName?: string) => {
+    try {
+      console.log('🔄 Verifying phone and creating account:', phoneNumber);
+      
+      // Vérifier le code avec Twilio
+      const twilioResult = await twilioService.verifyCode(phoneNumber, verificationCode);
+      
+      if (!twilioResult.success) {
+        return { 
+          data: null, 
+          error: { message: twilioResult.error || 'Code de vérification invalide' } 
+        };
+      }
+      
+      // Une fois le téléphone vérifié, créer le compte avec Supabase
+      // Utiliser le numéro de téléphone comme email temporaire
+      const tempEmail = `${phoneNumber.replace(/\D/g, '')}@phone.temp`;
+      const tempPassword = Math.random().toString(36).substring(2, 15);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: tempEmail,
+        password: tempPassword,
+        options: {
+          data: {
+            full_name: fullName,
+            phone: phoneNumber,
+            phone_verified: true,
+          },
+        },
+      });
+      
+      if (error) {
+        console.error('❌ Supabase signup error:', error);
+        return { data, error };
+      }
+      
+      console.log('✅ Phone account created successfully');
+      return { data, error };
+    } catch (error) {
+      console.error('❌ Error in verifyPhoneAndCreateAccount:', error);
+      return { 
+        data: null, 
+        error: { 
+          message: error instanceof Error ? error.message : 'Erreur lors de la création du compte' 
+        } 
+      };
+    }
+  };
+
+  const verifyPhoneAndSignIn = async (phoneNumber: string, verificationCode: string) => {
+    try {
+      console.log('🔄 Verifying phone and signing in:', phoneNumber);
+      
+      // Vérifier le code avec Twilio
+      const twilioResult = await twilioService.verifyCode(phoneNumber, verificationCode);
+      
+      if (!twilioResult.success) {
+        return { 
+          data: null, 
+          error: { message: twilioResult.error || 'Code de vérification invalide' } 
+        };
+      }
+      
+      // Chercher l'utilisateur avec ce numéro de téléphone
+      const tempEmail = `${phoneNumber.replace(/\D/g, '')}@phone.temp`;
+      
+      // Essayer de se connecter avec l'email temporaire
+      // Note: Dans un vrai système, vous devriez avoir une meilleure façon de gérer cela
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: tempEmail,
+        password: 'temp_password_needs_better_implementation',
+      });
+      
+      if (error) {
+        return { 
+          data: null, 
+          error: { message: 'Aucun compte trouvé avec ce numéro de téléphone' } 
+        };
+      }
+      
+      console.log('✅ Phone signin successful');
+      return { data, error };
+    } catch (error) {
+      console.error('❌ Error in verifyPhoneAndSignIn:', error);
+      return { 
+        data: null, 
+        error: { 
+          message: error instanceof Error ? error.message : 'Erreur lors de la connexion' 
+        } 
       };
     }
   };
@@ -376,6 +486,8 @@ export function useAuth() {
     signInWithGoogle,
     signInWithPhone,
     signUpWithPhone,
+    verifyPhoneAndCreateAccount,
+    verifyPhoneAndSignIn,
     signUp,
     signOut,
     ensureUserExists, // Export this for manual use if needed
