@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Camera, Image as ImageIcon, Lightbulb, Contrast, Sparkles, Check, ChevronRight, CreditCard as Edit3, Plus } from 'lucide-react-native';
+import { ArrowLeft, Camera, Image as ImageIcon, X, Plus } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -46,13 +46,6 @@ const steps: StepConfig[] = [
   { id: 'confirm', title: 'Confirmer', number: 4 },
 ];
 
-interface DetectedTag {
-  label: string;
-  value: string;
-  editable: boolean;
-  key: keyof ClothingFormData;
-}
-
 interface ClothingFormData {
   type: ClothingType;
   color: string;
@@ -61,7 +54,60 @@ interface ClothingFormData {
   brand: string;
   style: Style;
   size: string;
+  name: string;
 }
+
+// Suggested tags for each category
+const suggestedTags = {
+  type: [
+    { label: 'T-shirt', value: 'top' },
+    { label: 'Polo', value: 'top' },
+    { label: 'Chemise', value: 'top' },
+    { label: 'Pull', value: 'top' },
+    { label: 'Sweat', value: 'top' },
+    { label: 'Veste', value: 'outerwear' },
+    { label: 'Manteau', value: 'outerwear' },
+    { label: 'Jean', value: 'bottom' },
+    { label: 'Pantalon', value: 'bottom' },
+    { label: 'Short', value: 'bottom' },
+    { label: 'Jupe', value: 'bottom' },
+    { label: 'Robe', value: 'dress' },
+    { label: 'Baskets', value: 'shoes' },
+    { label: 'Chaussures', value: 'shoes' },
+    { label: 'Bottes', value: 'shoes' },
+    { label: 'Sac', value: 'accessories' },
+    { label: 'Ceinture', value: 'accessories' },
+    { label: 'Chapeau', value: 'accessories' },
+  ],
+  color: [
+    'Bleu', 'Rouge', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Marron',
+    'Noir', 'Blanc', 'Gris', 'Beige', 'Marine', 'Bordeaux', 'Kaki', 'Turquoise'
+  ],
+  material: [
+    'Coton', 'Jersey', 'Lin', 'Soie', 'Laine', 'Polyester', 'Denim', 'Cuir',
+    'Velours', 'Cachemire', 'Viscose', 'Elasthanne', 'Nylon', 'Acrylique'
+  ],
+  season: [
+    { label: 'Printemps', value: 'spring' },
+    { label: 'Été', value: 'summer' },
+    { label: 'Automne', value: 'fall' },
+    { label: 'Hiver', value: 'winter' },
+    { label: 'Toute saison', value: 'all' },
+  ],
+  style: [
+    { label: 'Décontracté', value: 'casual' },
+    { label: 'Formel', value: 'formal' },
+    { label: 'Sport', value: 'sport' },
+    { label: 'Chic', value: 'chic' },
+    { label: 'Vintage', value: 'vintage' },
+    { label: 'Streetwear', value: 'streetwear' },
+  ],
+  size: [
+    'XS', 'S', 'M', 'L', 'XL', 'XXL', 
+    '34', '36', '38', '40', '42', '44', '46', '48',
+    '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'
+  ]
+};
 
 export default function AddItemScreen() {
   const router = useRouter();
@@ -70,19 +116,14 @@ export default function AddItemScreen() {
   
   const [currentStep, setCurrentStep] = useState<Step>('photo');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>('image/jpeg');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>('image/jpeg');
+  
   const progressValue = useSharedValue(0);
   const cropProgressValue = useSharedValue(0);
   const pulseValue = useSharedValue(1);
-
-  // Form state for the new design
-  const [clothingName, setClothingName] = useState('T-shirt bleu basique');
-  const [selectedSeason, setSelectedSeason] = useState<Season>('all');
-  const [brandName, setBrandName] = useState('');
 
   const [formData, setFormData] = useState<ClothingFormData>({
     type: 'top',
@@ -92,17 +133,8 @@ export default function AddItemScreen() {
     brand: '',
     style: 'casual',
     size: '',
+    name: '',
   });
-
-  const [detectedTags, setDetectedTags] = useState<DetectedTag[]>([
-    { label: 'Type', value: 'T-shirt', editable: true, key: 'type' },
-    { label: 'Couleur', value: 'Bleu', editable: true, key: 'color' },
-    { label: 'Matière', value: 'Coton', editable: true, key: 'material' },
-    { label: 'Saison', value: 'Printemps, Été', editable: true, key: 'season' },
-    { label: 'Marque', value: 'Nike', editable: true, key: 'brand' },
-    { label: 'Style', value: 'Décontracté', editable: true, key: 'style' },
-    { label: 'Taille', value: 'M', editable: true, key: 'size' },
-  ]);
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
 
@@ -111,7 +143,7 @@ export default function AddItemScreen() {
   }, [currentStep, currentStepIndex]);
 
   // Simulate automatic cropping process
-  useEffect(() => {
+  React.useEffect(() => {
     if (currentStep === 'crop' && isProcessing) {
       // Start pulse animation
       pulseValue.value = withRepeat(
@@ -144,7 +176,7 @@ export default function AddItemScreen() {
   }, [currentStep, isProcessing]);
 
   // Animate crop progress
-  useEffect(() => {
+  React.useEffect(() => {
     cropProgressValue.value = withTiming(processingProgress / 100, { duration: 100 });
   }, [processingProgress]);
 
@@ -292,14 +324,14 @@ export default function AddItemScreen() {
       const clothingItem = {
         user_id: user.id,
         image_url: imageUrl,
-        type: mapTypeToDatabase(detectedTags.find(tag => tag.key === 'type')?.value || 'T-shirt'),
-        color: detectedTags.find(tag => tag.key === 'color')?.value || null,
-        material: detectedTags.find(tag => tag.key === 'material')?.value || null,
-        season: selectedSeason,
-        brand: brandName || null,
-        style: mapStyleToDatabase(detectedTags.find(tag => tag.key === 'style')?.value || 'Décontracté'),
-        size: detectedTags.find(tag => tag.key === 'size')?.value || null,
-        model: clothingName || null,
+        type: formData.type,
+        color: formData.color || null,
+        material: formData.material || null,
+        season: formData.season,
+        brand: formData.brand || null,
+        style: formData.style,
+        size: formData.size || null,
+        model: formData.name || null,
         tags: null,
       };
 
@@ -357,9 +389,6 @@ export default function AddItemScreen() {
     setCurrentStep('photo');
     setSelectedImage(null);
     setSelectedImageMimeType('image/jpeg');
-    setClothingName('T-shirt bleu basique');
-    setSelectedSeason('all');
-    setBrandName('');
     setFormData({
       type: 'top',
       color: '',
@@ -368,104 +397,11 @@ export default function AddItemScreen() {
       brand: '',
       style: 'casual',
       size: '',
+      name: '',
     });
-    setDetectedTags([
-      { label: 'Type', value: 'T-shirt', editable: true, key: 'type' },
-      { label: 'Couleur', value: 'Bleu', editable: true, key: 'color' },
-      { label: 'Matière', value: 'Coton', editable: true, key: 'material' },
-      { label: 'Saison', value: 'Printemps, Été', editable: true, key: 'season' },
-      { label: 'Marque', value: 'Nike', editable: true, key: 'brand' },
-      { label: 'Style', value: 'Décontracté', editable: true, key: 'style' },
-      { label: 'Taille', value: 'M', editable: true, key: 'size' },
-    ]);
     setIsProcessing(false);
     setIsSaving(false);
     setProcessingProgress(0);
-    setEditingField(null);
-  };
-
-  const mapTypeToDatabase = (displayType: string): ClothingType => {
-    const typeMap: { [key: string]: ClothingType } = {
-      'T-shirt': 'top',
-      'Chemise': 'top',
-      'Pull': 'top',
-      'Haut': 'top',
-      'Veste': 'outerwear',
-      'Manteau': 'outerwear',
-      'Pantalon': 'bottom',
-      'Jean': 'bottom',
-      'Short': 'bottom',
-      'Jupe': 'bottom',
-      'Bas': 'bottom',
-      'Robe': 'dress',
-      'Chaussures': 'shoes',
-      'Baskets': 'shoes',
-      'Bottes': 'shoes',
-      'Accessoire': 'accessories',
-      'Sac': 'accessories',
-      'Ceinture': 'accessories',
-    };
-    
-    return typeMap[displayType] || 'top';
-  };
-
-  const mapSeasonToDatabase = (displaySeason: string): Season => {
-    if (displaySeason.includes('Printemps') && displaySeason.includes('Été')) return 'all';
-    if (displaySeason.includes('Printemps')) return 'spring';
-    if (displaySeason.includes('Été')) return 'summer';
-    if (displaySeason.includes('Automne')) return 'fall';
-    if (displaySeason.includes('Hiver')) return 'winter';
-    if (displaySeason.includes('Toute saison')) return 'all';
-    return 'all';
-  };
-
-  const mapStyleToDatabase = (displayStyle: string): Style => {
-    const styleMap: { [key: string]: Style } = {
-      'Décontracté': 'casual',
-      'Formel': 'formal',
-      'Sport': 'sport',
-      'Chic': 'chic',
-      'Vintage': 'vintage',
-      'Streetwear': 'streetwear',
-    };
-    
-    return styleMap[displayStyle] || 'casual';
-  };
-
-  const handleEditTag = (index: number, newValue: string) => {
-    const updatedTags = [...detectedTags];
-    updatedTags[index].value = newValue;
-    setDetectedTags(updatedTags);
-
-    // Update form data
-    const tag = updatedTags[index];
-    const updatedFormData = { ...formData };
-    
-    switch (tag.key) {
-      case 'type':
-        updatedFormData.type = mapTypeToDatabase(newValue);
-        break;
-      case 'color':
-        updatedFormData.color = newValue;
-        break;
-      case 'material':
-        updatedFormData.material = newValue;
-        break;
-      case 'season':
-        updatedFormData.season = mapSeasonToDatabase(newValue);
-        break;
-      case 'brand':
-        updatedFormData.brand = newValue;
-        break;
-      case 'style':
-        updatedFormData.style = mapStyleToDatabase(newValue);
-        break;
-      case 'size':
-        updatedFormData.size = newValue;
-        break;
-    }
-    
-    setFormData(updatedFormData);
   };
 
   const renderStepIndicator = () => (
@@ -484,7 +420,7 @@ export default function AddItemScreen() {
               index === currentStepIndex && styles.stepCircleCurrent
             ]}>
               {index < currentStepIndex ? (
-                <Check size={10} color="#FFFFFF" />
+                <Text style={styles.checkmark}>✓</Text>
               ) : (
                 <Text style={[
                   styles.stepNumber,
@@ -508,7 +444,6 @@ export default function AddItemScreen() {
 
   const renderPhotoStep = () => (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-      {/* Photo Container with proper spacing */}
       <View style={styles.photoContainer}>
         {selectedImage ? (
           <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
@@ -525,7 +460,6 @@ export default function AddItemScreen() {
         )}
       </View>
 
-      {/* Action Buttons with spacing */}
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={styles.primaryButton}
@@ -543,58 +477,21 @@ export default function AddItemScreen() {
           <Text style={styles.secondaryButtonText}>Galerie</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Tips Section with spacing */}
-      <View style={styles.tipsSection}>
-        <Text style={styles.tipsTitle}>Conseils pour de meilleures photos</Text>
-        
-        <View style={styles.tipItem}>
-          <View style={styles.tipIcon}>
-            <Lightbulb size={18} color="#EE7518" />
-          </View>
-          <View style={styles.tipContent}>
-            <Text style={styles.tipTitle}>Bonne luminosité</Text>
-            <Text style={styles.tipDescription}>
-              Prenez votre photo dans un endroit bien éclairé
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.tipItem}>
-          <View style={styles.tipIcon}>
-            <Contrast size={18} color="#EE7518" />
-          </View>
-          <View style={styles.tipContent}>
-            <Text style={styles.tipTitle}>Fond contrasté</Text>
-            <Text style={styles.tipDescription}>
-              Utilisez un fond uni qui contraste avec le vêtement
-            </Text>
-          </View>
-        </View>
-      </View>
     </ScrollView>
   );
 
   const renderCropStep = () => (
     <View style={styles.stepContent}>
-      {/* Crop Container with spacing */}
       <View style={styles.cropContainer}>
         {selectedImage && (
           <Animated.View style={[styles.imagePreview, pulseStyle]}>
             <Image source={{ uri: selectedImage }} style={styles.cropImage} />
             
-            {/* Red checkered overlay for the t-shirt */}
-            <View style={styles.cropOverlay}>
-              <View style={styles.checkeredPattern} />
-            </View>
-            
-            {/* Processing overlay */}
             {isProcessing && (
               <View style={styles.processingOverlay}>
                 <View style={styles.processingContent}>
                   <Text style={styles.processingTitle}>Découpage automatique en cours...</Text>
                   
-                  {/* Progress bar */}
                   <View style={styles.progressContainer}>
                     <View style={styles.progressBackground}>
                       <Animated.View style={[styles.progressFill, cropProgressStyle]} />
@@ -620,117 +517,132 @@ export default function AddItemScreen() {
 
   const renderTagsStep = () => (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-      {/* Horizontal Layout: Image on left, Tags card on right with proper spacing */}
-      <View style={styles.horizontalContainer}>
-        {/* Left side - Image */}
-        <View style={styles.leftImageContainer}>
-          {selectedImage && (
-            <Image source={{ uri: selectedImage }} style={styles.horizontalImage} />
-          )}
-        </View>
-
-        {/* Right side - Tags card with proper containment */}
-        <View style={styles.rightTagsCard}>
-          <Text style={styles.tagsCardTitle}>Tags générés</Text>
-          
-          {/* Type Row */}
-          <View style={styles.tagRow}>
-            <Text style={styles.tagRowLabel}>Type</Text>
-            <View style={styles.tagRowChips}>
-              <View style={styles.tagChip}>
-                <Text style={styles.tagChipText} numberOfLines={1}>T-shirt</Text>
-              </View>
-              <View style={styles.tagChip}>
-                <Text style={styles.tagChipText} numberOfLines={1}>Polo</Text>
-              </View>
-            </View>
-          </View>
-          
-          {/* Couleur Row */}
-          <View style={styles.tagRow}>
-            <Text style={styles.tagRowLabel}>Couleur</Text>
-            <View style={styles.tagRowChips}>
-              <View style={styles.tagChip}>
-                <Text style={styles.tagChipText} numberOfLines={1}>Bleu</Text>
-              </View>
-              <View style={styles.tagChip}>
-                <Text style={styles.tagChipText} numberOfLines={1}>Marine</Text>
-              </View>
-            </View>
-          </View>
-          
-          {/* Matière Row */}
-          <View style={styles.tagRow}>
-            <Text style={styles.tagRowLabel}>Matière</Text>
-            <View style={styles.tagRowChips}>
-              <View style={styles.tagChip}>
-                <Text style={styles.tagChipText} numberOfLines={1}>Coton</Text>
-              </View>
-              <View style={styles.tagChip}>
-                <Text style={styles.tagChipText} numberOfLines={1}>Jersey</Text>
-              </View>
-            </View>
-          </View>
-        </View>
+      {/* Image Preview */}
+      <View style={styles.imagePreviewContainer}>
+        {selectedImage && (
+          <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+        )}
       </View>
 
-      {/* Form inputs below with proper spacing */}
-      <View style={styles.formSection}>
-        {/* Clothing Name Input */}
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Nom du vêtement</Text>
-          <TextInput
-            style={styles.textInput}
-            value={clothingName}
-            onChangeText={setClothingName}
-            placeholder="T-shirt bleu basique"
-            placeholderTextColor="#C7C7CC"
-          />
-        </View>
-
-        {/* Season Selection */}
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Saison</Text>
-          <View style={styles.seasonContainer}>
-            {[
-              { key: 'spring', label: 'Printemps' },
-              { key: 'summer', label: 'Été' },
-              { key: 'fall', label: 'Automne' },
-              { key: 'winter', label: 'Hiver' },
-            ].map((season) => (
+      {/* Tags générés section */}
+      <View style={styles.tagsSection}>
+        <Text style={styles.sectionTitle}>Tags générés</Text>
+        
+        {/* Type */}
+        <View style={styles.tagCategory}>
+          <Text style={styles.tagCategoryLabel}>Type</Text>
+          <View style={styles.tagChipsContainer}>
+            {suggestedTags.type.map((tag, index) => (
               <TouchableOpacity
-                key={season.key}
+                key={index}
                 style={[
-                  styles.seasonChip,
-                  selectedSeason === season.key && styles.seasonChipActive
+                  styles.tagChip,
+                  formData.type === tag.value && styles.tagChipSelected
                 ]}
-                onPress={() => setSelectedSeason(season.key as Season)}
+                onPress={() => setFormData(prev => ({ ...prev, type: tag.value as ClothingType }))}
               >
                 <Text style={[
-                  styles.seasonChipText,
-                  selectedSeason === season.key && styles.seasonChipTextActive
+                  styles.tagChipText,
+                  formData.type === tag.value && styles.tagChipTextSelected
                 ]}>
-                  {season.label}
+                  {tag.label}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Brand Input */}
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Marque (optionnel)</Text>
-          <TextInput
-            style={styles.textInput}
-            value={brandName}
-            onChangeText={setBrandName}
-            placeholder="Entrez la marque..."
-            placeholderTextColor="#C7C7CC"
-          />
+        {/* Couleur */}
+        <View style={styles.tagCategory}>
+          <Text style={styles.tagCategoryLabel}>Couleur</Text>
+          <View style={styles.tagChipsContainer}>
+            {suggestedTags.color.map((color, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.tagChip,
+                  formData.color === color && styles.tagChipSelected
+                ]}
+                onPress={() => setFormData(prev => ({ ...prev, color }))}
+              >
+                <Text style={[
+                  styles.tagChipText,
+                  formData.color === color && styles.tagChipTextSelected
+                ]}>
+                  {color}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Matière */}
+        <View style={styles.tagCategory}>
+          <Text style={styles.tagCategoryLabel}>Matière</Text>
+          <View style={styles.tagChipsContainer}>
+            {suggestedTags.material.map((material, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.tagChip,
+                  formData.material === material && styles.tagChipSelected
+                ]}
+                onPress={() => setFormData(prev => ({ ...prev, material }))}
+              >
+                <Text style={[
+                  styles.tagChipText,
+                  formData.material === material && styles.tagChipTextSelected
+                ]}>
+                  {material}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </View>
 
-      {/* Show any errors from the clothes hook */}
+      {/* Manual inputs */}
+      <View style={styles.manualInputsSection}>
+        <Text style={styles.sectionTitle}>Nom du vêtement</Text>
+        <TextInput
+          style={styles.textInput}
+          value={formData.name}
+          onChangeText={(name) => setFormData(prev => ({ ...prev, name }))}
+          placeholder="T-shirt bleu basique"
+          placeholderTextColor="#C7C7CC"
+        />
+
+        <Text style={styles.sectionTitle}>Saison</Text>
+        <View style={styles.tagChipsContainer}>
+          {suggestedTags.season.map((season, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.tagChip,
+                formData.season === season.value && styles.tagChipSelected
+              ]}
+              onPress={() => setFormData(prev => ({ ...prev, season: season.value as Season }))}
+            >
+              <Text style={[
+                styles.tagChipText,
+                formData.season === season.value && styles.tagChipTextSelected
+              ]}>
+                {season.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.sectionTitle}>Marque (optionnel)</Text>
+        <TextInput
+          style={styles.textInput}
+          value={formData.brand}
+          onChangeText={(brand) => setFormData(prev => ({ ...prev, brand }))}
+          placeholder="Entrez la marque..."
+          placeholderTextColor="#C7C7CC"
+        />
+      </View>
+
       {clothesError && (
         <View style={styles.errorMessage}>
           <Text style={styles.errorText}>{clothesError}</Text>
@@ -741,7 +653,6 @@ export default function AddItemScreen() {
 
   const renderConfirmStep = () => (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-      {/* Confirm Container with proper spacing */}
       <View style={styles.confirmContainer}>
         <View style={styles.finalPreview}>
           {selectedImage && (
@@ -751,43 +662,38 @@ export default function AddItemScreen() {
         
         <View style={styles.itemDetails}>
           <Text style={styles.itemTitle}>
-            {clothingName || 'Nouveau vêtement'}
+            {formData.name || 'Nouveau vêtement'}
           </Text>
           <Text style={styles.itemSubtitle}>
-            {[
-              detectedTags.find(tag => tag.key === 'material')?.value,
-              detectedTags.find(tag => tag.key === 'style')?.value,
-              brandName
-            ].filter(Boolean).join(' • ')}
+            {[formData.material, formData.color, formData.brand].filter(Boolean).join(' • ')}
           </Text>
         </View>
 
         <View style={styles.detailsList}>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Type</Text>
-            <Text style={styles.detailValue}>{detectedTags.find(tag => tag.key === 'type')?.value || '-'}</Text>
+            <Text style={styles.detailValue}>
+              {suggestedTags.type.find(t => t.value === formData.type)?.label || formData.type}
+            </Text>
           </View>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Couleur</Text>
-            <Text style={styles.detailValue}>{detectedTags.find(tag => tag.key === 'color')?.value || '-'}</Text>
+            <Text style={styles.detailValue}>{formData.color || '-'}</Text>
           </View>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Matière</Text>
-            <Text style={styles.detailValue}>{detectedTags.find(tag => tag.key === 'material')?.value || '-'}</Text>
+            <Text style={styles.detailValue}>{formData.material || '-'}</Text>
           </View>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Saison</Text>
             <Text style={styles.detailValue}>
-              {selectedSeason === 'spring' ? 'Printemps' : 
-               selectedSeason === 'summer' ? 'Été' :
-               selectedSeason === 'fall' ? 'Automne' :
-               selectedSeason === 'winter' ? 'Hiver' : 'Toute saison'}
+              {suggestedTags.season.find(s => s.value === formData.season)?.label || formData.season}
             </Text>
           </View>
-          {brandName && (
+          {formData.brand && (
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Marque</Text>
-              <Text style={styles.detailValue}>{brandName}</Text>
+              <Text style={styles.detailValue}>{formData.brand}</Text>
             </View>
           )}
         </View>
@@ -817,7 +723,7 @@ export default function AddItemScreen() {
       case 'crop':
         return !isProcessing;
       case 'tags':
-        return !isProcessing && clothingName.trim() !== '';
+        return !isProcessing && formData.name.trim() !== '';
       case 'confirm':
         return true;
       default:
@@ -843,7 +749,7 @@ export default function AddItemScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with spacing */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -863,54 +769,18 @@ export default function AddItemScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
-      {/* Step Indicator with spacing */}
+      {/* Step Indicator */}
       {renderStepIndicator()}
 
-      {/* Content with spacing */}
+      {/* Content */}
       <View style={styles.content}>
         {renderStepContent()}
       </View>
 
-      {/* Bottom Actions with spacing */}
+      {/* Bottom Actions */}
       {!isProcessing && (
         <View style={styles.bottomActions}>
-          {currentStep === 'tags' ? (
-            <View style={styles.tagsActions}>
-              <TouchableOpacity
-                style={styles.modifyButton}
-                onPress={() => setCurrentStep('crop')}
-              >
-                <Text style={styles.modifyButtonText}>Retour</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[
-                  styles.addToWardrobeButton,
-                  !canProceed() && styles.addToWardrobeButtonDisabled
-                ]}
-                onPress={() => setCurrentStep('confirm')}
-                disabled={!canProceed()}
-              >
-                <Text style={styles.addToWardrobeButtonText}>Continuer</Text>
-              </TouchableOpacity>
-            </View>
-          ) : currentStep === 'crop' ? (
-            <View style={styles.cropActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setCurrentStep('photo')}
-              >
-                <Text style={styles.cancelButtonText}>Annuler</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.validateButton}
-                onPress={handleNextStep}
-              >
-                <Text style={styles.validateButtonText}>Valider le découpage</Text>
-              </TouchableOpacity>
-            </View>
-          ) : currentStep === 'confirm' ? (
+          {currentStep === 'confirm' ? (
             <TouchableOpacity
               style={[styles.continueButton, styles.confirmButton]}
               onPress={handleConfirm}
@@ -922,6 +792,17 @@ export default function AddItemScreen() {
                 <Text style={styles.continueButtonText}>Ajouter à ma garde-robe</Text>
               )}
             </TouchableOpacity>
+          ) : currentStep === 'tags' ? (
+            <TouchableOpacity
+              style={[
+                styles.continueButton,
+                !canProceed() && styles.continueButtonDisabled
+              ]}
+              onPress={handleNextStep}
+              disabled={!canProceed()}
+            >
+              <Text style={styles.continueButtonText}>Continuer</Text>
+            </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={[
@@ -932,7 +813,6 @@ export default function AddItemScreen() {
               disabled={!canProceed()}
             >
               <Text style={styles.continueButtonText}>Continuer</Text>
-              <ChevronRight size={18} color="#FFFFFF" />
             </TouchableOpacity>
           )}
         </View>
@@ -959,16 +839,16 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   
-  // Header with proper spacing
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16, // Increased for better spacing
+    paddingVertical: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E2E1',
-    marginBottom: 8, // Add margin below header
+    marginBottom: 8,
   },
   backButton: {
     width: 36,
@@ -990,18 +870,18 @@ const styles = StyleSheet.create({
     width: 36,
   },
   
-  // Step Indicator with spacing
+  // Step Indicator
   stepIndicator: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 16, // Increased for better spacing
+    paddingVertical: 16,
     paddingHorizontal: 20,
-    marginBottom: 16, // Add margin below step indicator
+    marginBottom: 16,
   },
   progressBarContainer: {
     height: 3,
     backgroundColor: '#E5E2E1',
     borderRadius: 2,
-    marginBottom: 16, // Increased spacing
+    marginBottom: 16,
     overflow: 'hidden',
   },
   progressBarBackground: {
@@ -1032,7 +912,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E2E1',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6, // Increased spacing
+    marginBottom: 6,
   },
   stepCircleActive: {
     backgroundColor: '#EE7518',
@@ -1053,6 +933,11 @@ const styles = StyleSheet.create({
   stepNumberActive: {
     color: '#FFFFFF',
   },
+  checkmark: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   stepTitle: {
     fontSize: 9,
     fontWeight: '500',
@@ -1064,22 +949,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Content with spacing
+  // Content
   content: {
     flex: 1,
-    marginHorizontal: 16, // Add horizontal margins
+    marginHorizontal: 16,
   },
   stepContent: {
     flex: 1,
-    padding: 20, // Increased padding for better spacing
+    padding: 20,
   },
   
-  // Photo Step with proper spacing
+  // Photo Step
   photoContainer: {
-    marginBottom: 32, // Increased spacing between sections
+    marginBottom: 32,
   },
   photoPlaceholder: {
-    height: 200, // Increased height
+    height: 200,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: '#E5E2E1',
@@ -1090,7 +975,7 @@ const styles = StyleSheet.create({
   },
   selectedImage: {
     width: '100%',
-    height: 200, // Increased height
+    height: 200,
     borderRadius: 16,
   },
   cameraIconContainer: {
@@ -1100,13 +985,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3E2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16, // Increased spacing
+    marginBottom: 16,
   },
   photoTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 8, // Increased spacing
+    marginBottom: 8,
   },
   photoSubtitle: {
     fontSize: 14,
@@ -1116,15 +1001,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   
-  // Action Buttons with spacing
+  // Action Buttons
   actionButtons: {
-    gap: 16, // Increased gap between buttons
-    marginBottom: 32, // Increased spacing below buttons
+    gap: 16,
+    marginBottom: 32,
   },
   primaryButton: {
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 16, // Increased padding
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1143,7 +1028,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 16, // Increased padding
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1157,62 +1042,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Tips Section with spacing
-  tipsSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24, // Increased padding
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    marginBottom: 20, // Increased spacing
-  },
-  tipItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16, // Increased spacing between tips
-  },
-  tipIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FEF3E2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16, // Increased spacing
-  },
-  tipContent: {
-    flex: 1,
-  },
-  tipTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1C1C1E',
-    marginBottom: 4,
-  },
-  tipDescription: {
-    fontSize: 13,
-    color: '#8E8E93',
-    lineHeight: 18,
-  },
-  
-  // Crop Step with spacing
+  // Crop Step
   cropContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 32, // Increased spacing
+    paddingVertical: 32,
   },
   imagePreview: {
     position: 'relative',
-    width: width - 80, // Increased margins
+    width: width - 80,
     height: (width - 80) * 1.2,
     borderRadius: 16,
     overflow: 'hidden',
@@ -1226,24 +1065,6 @@ const styles = StyleSheet.create({
   cropImage: {
     width: '100%',
     height: '100%',
-  },
-  cropOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  checkeredPattern: {
-    position: 'absolute',
-    top: '25%',
-    left: '25%',
-    width: '50%',
-    height: '30%',
-    backgroundColor: '#FF0000',
-    opacity: 0.7,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
   },
   processingOverlay: {
     position: 'absolute',
@@ -1282,7 +1103,7 @@ const styles = StyleSheet.create({
   },
   cropInstructions: {
     alignItems: 'center',
-    paddingVertical: 32, // Increased spacing
+    paddingVertical: 32,
   },
   instructionTitle: {
     fontSize: 18,
@@ -1297,148 +1118,108 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  // Tags Step - Horizontal Layout with proper spacing
-  horizontalContainer: {
-    flexDirection: 'row',
-    marginBottom: 24, // Increased spacing
-    gap: 16, // Increased gap
-    height: 180, // INCREASED HEIGHT from 140 to 180
+  // Tags Step
+  imagePreviewContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  leftImageContainer: {
-    width: 140, // INCREASED WIDTH from 120 to 140
-    height: 180, // INCREASED HEIGHT from 140 to 180
+  previewImage: {
+    width: 120,
+    height: 120,
     borderRadius: 12,
-    overflow: 'hidden',
+  },
+  tagsSection: {
     backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
   },
-  horizontalImage: {
-    width: '100%',
-    height: '100%',
-  },
-  rightTagsCard: {
-    flex: 1,
-    height: 180, // INCREASED HEIGHT from 140 to 180
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20, // INCREASED PADDING from 16 to 20
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    overflow: 'hidden', // CRITICAL: Ensures tags stay within the card
-  },
-  tagsCardTitle: {
-    fontSize: 16, // INCREASED FONT SIZE from 14 to 16
+  sectionTitle: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 16, // INCREASED SPACING from 12 to 16
+    marginBottom: 16,
   },
-  tagRow: {
-    marginBottom: 12, // INCREASED SPACING from 8 to 12
+  tagCategory: {
+    marginBottom: 20,
   },
-  tagRowLabel: {
-    fontSize: 12, // INCREASED FONT SIZE from 11 to 12
+  tagCategoryLabel: {
+    fontSize: 14,
     fontWeight: '500',
     color: '#8E8E93',
-    marginBottom: 6, // INCREASED SPACING from 4 to 6
+    marginBottom: 8,
   },
-  tagRowChips: {
+  tagChipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6, // INCREASED GAP from 4 to 6
-    maxWidth: '100%',
+    gap: 8,
   },
   tagChip: {
-    backgroundColor: '#EE7518',
-    borderRadius: 12, // INCREASED BORDER RADIUS from 10 to 12
-    paddingHorizontal: 10, // INCREASED PADDING from 8 to 10
-    paddingVertical: 6, // INCREASED PADDING from 4 to 6
-    maxWidth: '48%',
-  },
-  tagChipText: {
-    color: '#FFFFFF',
-    fontSize: 11, // INCREASED FONT SIZE from 10 to 11
-    fontWeight: '500',
-  },
-  
-  // Form Section with proper spacing
-  formSection: {
-    gap: 20, // Increased gap between form sections
-  },
-  inputSection: {
-    marginBottom: 16, // Increased spacing
-  },
-  inputLabel: {
-    fontSize: 14, // Increased font size
-    fontWeight: '600',
-    color: '#1C1C1E',
-    marginBottom: 8, // Increased spacing
-  },
-  textInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 16, // Increased padding
-    paddingVertical: 12, // Increased padding
-    fontSize: 14, // Increased font size
-    color: '#1C1C1E',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
     borderColor: '#E5E2E1',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  
-  // Season Selection with spacing
-  seasonContainer: {
-    flexDirection: 'row',
-    gap: 8, // Increased gap
-    flexWrap: 'wrap',
-  },
-  seasonChip: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12, // Increased border radius
-    paddingHorizontal: 16, // Increased padding
-    paddingVertical: 8, // Increased padding
-    borderWidth: 1,
-    borderColor: '#E5E2E1',
-  },
-  seasonChipActive: {
+  tagChipSelected: {
     backgroundColor: '#EE7518',
     borderColor: '#EE7518',
   },
-  seasonChipText: {
-    fontSize: 12, // Increased font size
-    fontWeight: '500',
+  tagChipText: {
+    fontSize: 12,
     color: '#8E8E93',
+    fontWeight: '500',
   },
-  seasonChipTextActive: {
+  tagChipTextSelected: {
     color: '#FFFFFF',
   },
-
-  // Error Message with spacing
+  manualInputsSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  textInput: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#1C1C1E',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+    marginBottom: 16,
+  },
   errorMessage: {
     backgroundColor: '#FEF2F2',
     borderRadius: 12,
-    padding: 16, // Increased padding
+    padding: 16,
     borderWidth: 1,
     borderColor: '#FECACA',
-    marginTop: 16, // Increased spacing
+    marginTop: 16,
   },
   
-  // Confirm Step with spacing
+  // Confirm Step
   confirmContainer: {
     alignItems: 'center',
-    paddingVertical: 20, // Added vertical padding
+    paddingVertical: 20,
   },
   finalPreview: {
     width: 160,
     height: 160,
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 24, // Increased spacing
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -1451,13 +1232,13 @@ const styles = StyleSheet.create({
   },
   itemDetails: {
     alignItems: 'center',
-    marginBottom: 32, // Increased spacing
+    marginBottom: 32,
   },
   itemTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#1C1C1E',
-    marginBottom: 8, // Increased spacing
+    marginBottom: 8,
   },
   itemSubtitle: {
     fontSize: 14,
@@ -1468,7 +1249,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 24, // Increased padding
+    padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1479,7 +1260,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12, // Increased padding
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
   },
@@ -1494,93 +1275,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Bottom Actions with proper spacing
+  // Bottom Actions
   bottomActions: {
-    padding: 24, // Increased padding
+    padding: 24,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E2E1',
-    marginTop: 16, // Add margin above bottom actions
-  },
-  tagsActions: {
-    flexDirection: 'row',
-    gap: 12, // Increased gap
-  },
-  modifyButton: {
-    flex: 1, // Equal width with addToWardrobeButton
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 16, // Increased padding
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E2E1',
-  },
-  modifyButtonText: {
-    color: '#8E8E93',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  addToWardrobeButton: {
-    flex: 1, // Equal width with modifyButton
-    backgroundColor: '#EE7518',
-    borderRadius: 12,
-    paddingVertical: 16, // Increased padding
-    alignItems: 'center',
-    shadowColor: '#EE7518',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  addToWardrobeButtonDisabled: {
-    backgroundColor: '#E5E2E1',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  addToWardrobeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  cropActions: {
-    flexDirection: 'row',
-    gap: 12, // Increased gap
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 16, // Increased padding
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E2E1',
-  },
-  cancelButtonText: {
-    color: '#8E8E93',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  validateButton: {
-    flex: 2,
-    backgroundColor: '#EE7518',
-    borderRadius: 12,
-    paddingVertical: 16, // Increased padding
-    alignItems: 'center',
-    shadowColor: '#EE7518',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  validateButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    marginTop: 16,
   },
   continueButton: {
     backgroundColor: '#EE7518',
     borderRadius: 12,
-    paddingVertical: 16, // Increased padding
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
