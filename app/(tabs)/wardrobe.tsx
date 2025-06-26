@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRef } from 'react';
 import {
   View,
   Text,
@@ -57,6 +58,7 @@ export default function WardrobeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { clothes, loading, error, fetchClothes, deleteClothingItem } = useClothes();
+  const isMountedRef = useRef(true);
   
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedColor, setSelectedColor] = useState('all');
@@ -73,6 +75,12 @@ export default function WardrobeScreen() {
     season: 'Toutes',
     style: 'Tous'
   });
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Map database types to display categories
   const mapTypeToCategory = (type: string): string => {
@@ -128,7 +136,9 @@ export default function WardrobeScreen() {
     } catch (error) {
       console.error('Error refreshing clothes:', error);
     } finally {
-      setRefreshing(false);
+      if (isMountedRef.current) {
+        setRefreshing(false);
+      }
     }
   };
 
@@ -147,10 +157,14 @@ export default function WardrobeScreen() {
           onPress: async () => {
             try {
               await deleteClothingItem(item.id);
-              setShowOptionsModal(false);
-              Alert.alert('Succès', 'Article supprimé de votre garde-robe.');
+              if (isMountedRef.current) {
+                setShowOptionsModal(false);
+                Alert.alert('Succès', 'Article supprimé de votre garde-robe.');
+              }
             } catch (error) {
-              Alert.alert('Erreur', 'Impossible de supprimer l\'article.');
+              if (isMountedRef.current) {
+                Alert.alert('Erreur', 'Impossible de supprimer l\'article.');
+              }
             }
           },
         },
@@ -159,28 +173,36 @@ export default function WardrobeScreen() {
   };
 
   const handleEditItem = (item: ClothingItem) => {
-    setShowOptionsModal(false);
+    if (isMountedRef.current) {
+      setShowOptionsModal(false);
+    }
     // Navigate to edit screen or show edit modal
     console.log('Edit item:', item.id);
     Alert.alert('Modification', 'La modification des articles sera bientôt disponible.');
   };
 
   const handleShareItem = (item: ClothingItem) => {
-    setShowOptionsModal(false);
+    if (isMountedRef.current) {
+      setShowOptionsModal(false);
+    }
     // Implement share functionality
     console.log('Share item:', item.id);
     Alert.alert('Partage', 'Le partage sera bientôt disponible.');
   };
 
   const handleItemOptions = (item: ClothingItem) => {
-    setSelectedItem(item);
-    setShowOptionsModal(true);
+    if (isMountedRef.current) {
+      setSelectedItem(item);
+      setShowOptionsModal(true);
+    }
   };
 
   const applyFilters = () => {
-    setSelectedCategory(filters.category);
-    setSelectedColor(filters.color);
-    setShowFiltersModal(false);
+    if (isMountedRef.current) {
+      setSelectedCategory(filters.category);
+      setSelectedColor(filters.color);
+      setShowFiltersModal(false);
+    }
   };
 
   const resetFilters = () => {
@@ -192,9 +214,11 @@ export default function WardrobeScreen() {
       season: 'Toutes',
       style: 'Tous'
     };
-    setFilters(resetFilters);
-    setSelectedCategory('Tous');
-    setSelectedColor('all');
+    if (isMountedRef.current) {
+      setFilters(resetFilters);
+      setSelectedCategory('Tous');
+      setSelectedColor('all');
+    }
   };
 
   const getColorForItem = (color: string): string => {
@@ -444,7 +468,17 @@ export default function WardrobeScreen() {
           {filteredClothes.map((item) => (
             <View key={item.id} style={[styles.clothingCard, { width: cardWidth }]}>
               <View style={styles.imageContainer}>
-                <Image source={{ uri: item.image_url }} style={styles.clothingImage} />
+                {item.image_url && item.image_url.trim() !== '' ? (
+                  <Image 
+                    source={{ uri: item.image_url }} 
+                    style={styles.clothingImage}
+                    onError={() => console.warn('Failed to load image:', item.image_url)}
+                  />
+                ) : (
+                  <View style={styles.placeholderImage}>
+                    <Text style={styles.placeholderText}>Pas d'image</Text>
+                  </View>
+                )}
               </View>
               
               <View style={styles.cardContent}>
@@ -821,6 +855,18 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  placeholderImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    textAlign: 'center',
   },
   cardContent: {
     padding: 16,
