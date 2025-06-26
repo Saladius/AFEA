@@ -8,6 +8,9 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "expo": {
+      "scheme": "exp"
+    },
     "ios": {
       "supportsTablet": true
     },

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Platform } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
 // Configure WebBrowser for OAuth
 if (Platform.OS !== 'web') {
@@ -215,7 +216,10 @@ export function useAuth() {
         console.log('✅ Google OAuth initiated (web)');
         return { data, error };
       } else {
-        // For mobile platforms, get the correct redirect URI
+        // For mobile platforms with Expo Go, we need to use a different approach
+        console.log('📱 Starting mobile Google OAuth with Expo Go compatibility');
+        
+        // Create the redirect URI for Expo Go
         const redirectUri = AuthSession.makeRedirectUri({
           scheme: 'exp',
           path: '/(tabs)',
@@ -223,6 +227,7 @@ export function useAuth() {
         
         console.log('📱 Mobile redirect URI:', redirectUri);
         
+        // For Expo Go, we need to open the OAuth URL manually
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -237,6 +242,57 @@ export function useAuth() {
         if (error) {
           console.error('❌ Google OAuth error (mobile):', error);
           return { data, error };
+        }
+        
+        // For mobile, we need to manually open the browser
+        if (data.url) {
+          console.log('🌐 Opening OAuth URL in browser:', data.url);
+          
+          // Use WebBrowser to open the OAuth URL
+          const result = await WebBrowser.openAuthSessionAsync(
+            data.url,
+            redirectUri,
+            {
+              showInRecents: false,
+            }
+          );
+          
+          console.log('📱 WebBrowser result:', result);
+          
+          if (result.type === 'success' && result.url) {
+            // Parse the URL to extract tokens
+            const url = new URL(result.url);
+            const fragment = url.hash.substring(1);
+            const params = new URLSearchParams(fragment);
+            
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
+            
+            if (accessToken) {
+              console.log('✅ OAuth tokens received, setting session');
+              
+              // Set the session with the received tokens
+              const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken || '',
+              });
+              
+              if (sessionError) {
+                console.error('❌ Error setting session:', sessionError);
+                return { data: null, error: sessionError };
+              }
+              
+              console.log('✅ Google OAuth successful (mobile)');
+              return { data: sessionData, error: null };
+            }
+          }
+          
+          if (result.type === 'cancel') {
+            return { 
+              data: null, 
+              error: { message: 'Connexion annulée par l\'utilisateur' } 
+            };
+          }
         }
         
         console.log('✅ Google OAuth initiated (mobile)');
