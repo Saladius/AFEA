@@ -8,7 +8,6 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "scheme": "exp",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.afea.smartwardrobe"
@@ -20,13 +19,6 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            {
-              "scheme": "https",
-              "host": "*.supabase.co"
-            },
-            {
-              "scheme": "exp"
-            },
             {
               "scheme": "myapp"
             }
@@ -50,7 +42,7 @@
       [
         "expo-auth-session",
         {
-          "schemes": ["exp", "myapp"]
+          "schemes": ["myapp"]
         }
       ]
     ],
