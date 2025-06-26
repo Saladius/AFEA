@@ -11,20 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { 
-  ArrowLeft,
-  Calendar,
-  Clock,
-  MapPin,
-  Coffee,
-  Briefcase,
-  Dumbbell,
-  Heart,
-  Trash2,
-  Edit3,
-  RefreshCw,
-  MoreHorizontal
-} from 'lucide-react-native';
+import { ArrowLeft, Calendar, Clock, MapPin, Coffee, Briefcase, Dumbbell, Heart, Trash2, CreditCard as Edit3, RefreshCw, MoveHorizontal as MoreHorizontal } from 'lucide-react-native';
 import { useEvents } from '@/hooks/useEvents';
 import { useAuth } from '@/hooks/useAuth';
 import { Event, EventType } from '@/types/database';
