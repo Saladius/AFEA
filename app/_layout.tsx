@@ -6,6 +6,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSegments } from 'expo-router';
+import { Platform } from 'react-native';
+import * as Linking from 'expo-linking';
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +24,43 @@ export default function RootLayout() {
     'Inter-Bold': Inter_700Bold,
   });
 
+  // Handle deep linking for OAuth redirects
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      // Handle web OAuth redirect
+      const handleWebOAuthRedirect = () => {
+        const url = window.location.href;
+        if (url.includes('#access_token=') || url.includes('?access_token=')) {
+          console.log('🔄 Handling OAuth redirect on web');
+          // The auth state change will be handled by Supabase automatically
+          // Just clean up the URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      };
+      
+      handleWebOAuthRedirect();
+    } else {
+      // Handle mobile deep linking
+      const handleDeepLink = (url: string) => {
+        console.log('🔗 Deep link received:', url);
+        // Supabase will handle the OAuth tokens automatically
+      };
+      
+      // Listen for incoming links
+      const subscription = Linking.addEventListener('url', ({ url }) => {
+        handleDeepLink(url);
+      });
+      
+      // Check if app was opened with a link
+      Linking.getInitialURL().then((url) => {
+        if (url) {
+          handleDeepLink(url);
+        }
+      });
+      
+      return () => subscription?.remove();
+    }
+  }, []);
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();

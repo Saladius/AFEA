@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { Platform } from 'react-native';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+
+// Configure WebBrowser for OAuth
+if (Platform.OS !== 'web') {
+  WebBrowser.maybeCompleteAuthSession();
+}
 
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
@@ -192,7 +199,7 @@ export function useAuth() {
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+            redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/(tabs)` : undefined,
             queryParams: {
               access_type: 'offline',
               prompt: 'consent',
@@ -208,11 +215,18 @@ export function useAuth() {
         console.log('✅ Google OAuth initiated (web)');
         return { data, error };
       } else {
-        // For mobile platforms, use the popup method which works with expo-web-browser
+        // For mobile platforms, get the correct redirect URI
+        const redirectUri = AuthSession.makeRedirectUri({
+          scheme: 'exp',
+          path: '/(tabs)',
+        });
+        
+        console.log('📱 Mobile redirect URI:', redirectUri);
+        
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: 'exp://localhost:8081', // Expo development URL
+            redirectTo: redirectUri,
             queryParams: {
               access_type: 'offline',
               prompt: 'consent',
