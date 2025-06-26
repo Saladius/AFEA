@@ -184,21 +184,57 @@ export function useAuth() {
   };
 
   const signInWithGoogle = async () => {
-    if (Platform.OS === 'web') {
-      // For web, use redirect method
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
-      return { data, error };
-    } else {
-      // For mobile, this would require additional setup with expo-auth-session or Google Sign-In
-      // This is a placeholder implementation
+    try {
+      console.log('🔄 Starting Google OAuth sign in');
+      
+      if (Platform.OS === 'web') {
+        // For web, use redirect method
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            },
+          },
+        });
+        
+        if (error) {
+          console.error('❌ Google OAuth error (web):', error);
+          return { data, error };
+        }
+        
+        console.log('✅ Google OAuth initiated (web)');
+        return { data, error };
+      } else {
+        // For mobile platforms, use the popup method which works with expo-web-browser
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: 'exp://localhost:8081', // Expo development URL
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            },
+          },
+        });
+        
+        if (error) {
+          console.error('❌ Google OAuth error (mobile):', error);
+          return { data, error };
+        }
+        
+        console.log('✅ Google OAuth initiated (mobile)');
+        return { data, error };
+      }
+    } catch (error) {
+      console.error('❌ Unexpected error during Google OAuth:', error);
       return { 
         data: null, 
-        error: { message: 'Connexion Google disponible sur la version web' } 
+        error: { 
+          message: error instanceof Error ? error.message : 'Erreur de connexion Google inattendue' 
+        } 
       };
     }
   };

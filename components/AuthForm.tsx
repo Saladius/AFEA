@@ -168,15 +168,30 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
     setError('');
     
     try {
+      console.log('🔄 Initiating Google authentication');
       const result = await signInWithGoogle();
+      
       if (result.error) {
-        setError('Erreur lors de la connexion avec Google.');
+        console.error('❌ Google auth error:', result.error);
+        
+        // Provide more specific error messages
+        if (result.error.message.includes('popup_closed_by_user')) {
+          setError('Connexion annulée. Veuillez réessayer.');
+        } else if (result.error.message.includes('access_denied')) {
+          setError('Accès refusé. Veuillez autoriser l\'accès à votre compte Google.');
+        } else if (result.error.message.includes('network')) {
+          setError('Erreur de réseau. Vérifiez votre connexion internet.');
+        } else {
+          setError('Erreur lors de la connexion avec Google. Veuillez réessayer.');
+        }
       } else {
-        // Connexion Google réussie, rediriger vers le dashboard
-        router.replace('/(tabs)');
+        console.log('✅ Google authentication successful');
+        // Note: For OAuth, the redirect will be handled automatically by Supabase
+        // The auth state change listener will handle the navigation
       }
     } catch (err) {
-      setError('Erreur lors de la connexion avec Google.');
+      console.error('❌ Unexpected Google auth error:', err);
+      setError('Erreur inattendue lors de la connexion avec Google.');
     } finally {
       setGoogleLoading(false);
     }
