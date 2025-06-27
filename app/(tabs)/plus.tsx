@@ -5,12 +5,12 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
   Dimensions,
   Image,
   Alert,
   Platform,
   TextInput,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -126,6 +126,19 @@ export default function AddItemScreen() {
     style: 'casual',
     size: '',
     name: '',
+  });
+
+  // State for selected tags (only one per category)
+  const [selectedTags, setSelectedTags] = useState<{
+    type: string | null;
+    season: string | null;
+    style: string | null;
+    size: string | null;
+  }>({
+    type: null,
+    season: null,
+    style: null,
+    size: null
   });
 
   // State for custom tags
@@ -417,6 +430,12 @@ export default function AddItemScreen() {
       size: '',
       name: '',
     });
+    setSelectedTags({
+      type: null,
+      season: null,
+      style: null,
+      size: null
+    });
     setCustomTags({
       type: [],
       season: [],
@@ -455,6 +474,35 @@ export default function AddItemScreen() {
       ...prev,
       [category]: prev[category].filter(tag => tag !== tagToRemove)
     }));
+    // If the removed tag was selected, deselect it
+    if (selectedTags[category] === tagToRemove) {
+      setSelectedTags(prev => ({
+        ...prev,
+        [category]: null
+      }));
+    }
+  };
+
+  // Function to select a tag (only one per category)
+  const selectTag = (category: keyof typeof selectedTags, tag: string) => {
+    setSelectedTags(prev => ({
+      ...prev,
+      [category]: prev[category] === tag ? null : tag // Toggle selection
+    }));
+
+    // Update form data based on selection
+    if (category === 'type') {
+      const value = suggestedTags.type.find(t => t.label === tag)?.value || tag;
+      setFormData(prev => ({ ...prev, type: value as ClothingType }));
+    } else if (category === 'season') {
+      const value = suggestedTags.season.find(t => t.label === tag)?.value || tag;
+      setFormData(prev => ({ ...prev, season: value as Season }));
+    } else if (category === 'style') {
+      const value = suggestedTags.style.find(t => t.label === tag)?.value || tag;
+      setFormData(prev => ({ ...prev, style: value as Style }));
+    } else if (category === 'size') {
+      setFormData(prev => ({ ...prev, size: tag }));
+    }
   };
 
   // Function to get all available tags for a category
@@ -602,7 +650,7 @@ export default function AddItemScreen() {
           <Text style={styles.tagCategoryLabel}>Type</Text>
           <View style={styles.tagChipsContainer}>
             {getAllTagsForCategory('type').map((tag, index) => {
-              const isSelected = formData.type === (suggestedTags.type.find(t => t.label === tag)?.value || tag);
+              const isSelected = selectedTags.type === tag;
               const isCustom = customTags.type.includes(tag);
               
               return (
@@ -612,10 +660,7 @@ export default function AddItemScreen() {
                       styles.tagChip,
                       isSelected && styles.tagChipSelected
                     ]}
-                    onPress={() => {
-                      const value = suggestedTags.type.find(t => t.label === tag)?.value || tag;
-                      setFormData(prev => ({ ...prev, type: value as ClothingType }));
-                    }}
+                    onPress={() => selectTag('type', tag)}
                   >
                     <Text style={[
                       styles.tagChipText,
@@ -662,7 +707,7 @@ export default function AddItemScreen() {
           <Text style={styles.tagCategoryLabel}>Saison</Text>
           <View style={styles.tagChipsContainer}>
             {getAllTagsForCategory('season').map((tag, index) => {
-              const isSelected = formData.season === (suggestedTags.season.find(t => t.label === tag)?.value || tag);
+              const isSelected = selectedTags.season === tag;
               const isCustom = customTags.season.includes(tag);
               
               return (
@@ -672,10 +717,7 @@ export default function AddItemScreen() {
                       styles.tagChip,
                       isSelected && styles.tagChipSelected
                     ]}
-                    onPress={() => {
-                      const value = suggestedTags.season.find(t => t.label === tag)?.value || tag;
-                      setFormData(prev => ({ ...prev, season: value as Season }));
-                    }}
+                    onPress={() => selectTag('season', tag)}
                   >
                     <Text style={[
                       styles.tagChipText,
@@ -722,7 +764,7 @@ export default function AddItemScreen() {
           <Text style={styles.tagCategoryLabel}>Style</Text>
           <View style={styles.tagChipsContainer}>
             {getAllTagsForCategory('style').map((tag, index) => {
-              const isSelected = formData.style === (suggestedTags.style.find(t => t.label === tag)?.value || tag);
+              const isSelected = selectedTags.style === tag;
               const isCustom = customTags.style.includes(tag);
               
               return (
@@ -732,10 +774,7 @@ export default function AddItemScreen() {
                       styles.tagChip,
                       isSelected && styles.tagChipSelected
                     ]}
-                    onPress={() => {
-                      const value = suggestedTags.style.find(t => t.label === tag)?.value || tag;
-                      setFormData(prev => ({ ...prev, style: value as Style }));
-                    }}
+                    onPress={() => selectTag('style', tag)}
                   >
                     <Text style={[
                       styles.tagChipText,
@@ -782,7 +821,7 @@ export default function AddItemScreen() {
           <Text style={styles.tagCategoryLabel}>Taille</Text>
           <View style={styles.tagChipsContainer}>
             {getAllTagsForCategory('size').map((tag, index) => {
-              const isSelected = formData.size === tag;
+              const isSelected = selectedTags.size === tag;
               const isCustom = customTags.size.includes(tag);
               
               return (
@@ -792,7 +831,7 @@ export default function AddItemScreen() {
                       styles.tagChip,
                       isSelected && styles.tagChipSelected
                     ]}
-                    onPress={() => setFormData(prev => ({ ...prev, size: tag }))}
+                    onPress={() => selectTag('size', tag)}
                   >
                     <Text style={[
                       styles.tagChipText,
@@ -906,7 +945,7 @@ export default function AddItemScreen() {
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Type</Text>
             <Text style={styles.detailValue}>
-              {suggestedTags.type.find(t => t.value === formData.type)?.label || formData.type}
+              {selectedTags.type || formData.type}
             </Text>
           </View>
           <View style={styles.detailItem}>
@@ -920,13 +959,13 @@ export default function AddItemScreen() {
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Saison</Text>
             <Text style={styles.detailValue}>
-              {suggestedTags.season.find(s => s.value === formData.season)?.label || formData.season}
+              {selectedTags.season || formData.season}
             </Text>
           </View>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Style</Text>
             <Text style={styles.detailValue}>
-              {suggestedTags.style.find(s => s.value === formData.style)?.label || formData.style}
+              {selectedTags.style || formData.style}
             </Text>
           </View>
           {formData.size && (
