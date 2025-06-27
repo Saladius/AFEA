@@ -78,7 +78,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
           if (mode === 'signin') {
             setError('Email ou mot de passe incorrect. Vérifiez vos identifiants ou créez un compte si vous n\'en avez pas.');
           } else {
-            setError('Erreur lors de la création du compte. Veuillez réessayer.');
+            setError('Les informations fournies ne sont pas valides pour la création de compte. Veuillez vérifier votre email et mot de passe.');
           }
         } else if (result.error.message.includes('Email not confirmed')) {
           setError('Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte de réception.');
@@ -425,12 +425,12 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                     <Text style={styles.errorTitle}>Erreur</Text>
                   </View>
                   <Text style={styles.errorText}>{error}</Text>
-                  {error.includes('Email ou mot de passe incorrect') && (
+                  {error.includes('Les informations fournies ne sont pas valides') && (
                     <TouchableOpacity 
                       style={styles.errorAction}
                       onPress={onToggleMode}
                     >
-                      <Text style={styles.errorActionText}>Créer un nouveau compte</Text>
+                      <Text style={styles.errorActionText}>Se connecter avec un compte existant</Text>
                     </TouchableOpacity>
                   )}
                 </View>
