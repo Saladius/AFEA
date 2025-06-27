@@ -57,7 +57,7 @@ interface ClothingFormData {
   name: string;
 }
 
-// Suggested tags for each category (excluding color and material)
+// Suggested tags for each category
 const suggestedTags = {
   type: [
     { label: 'T-shirt', value: 'top' },
@@ -126,6 +126,32 @@ export default function AddItemScreen() {
     style: 'casual',
     size: '',
     name: '',
+  });
+
+  // State for custom tags
+  const [customTags, setCustomTags] = useState<{
+    type: string[];
+    season: string[];
+    style: string[];
+    size: string[];
+  }>({
+    type: [],
+    season: [],
+    style: [],
+    size: []
+  });
+
+  // State for new tag inputs
+  const [newTagInputs, setNewTagInputs] = useState<{
+    type: string;
+    season: string;
+    style: string;
+    size: string;
+  }>({
+    type: '',
+    season: '',
+    style: '',
+    size: ''
   });
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
@@ -391,9 +417,60 @@ export default function AddItemScreen() {
       size: '',
       name: '',
     });
+    setCustomTags({
+      type: [],
+      season: [],
+      style: [],
+      size: []
+    });
+    setNewTagInputs({
+      type: '',
+      season: '',
+      style: '',
+      size: ''
+    });
     setIsProcessing(false);
     setIsSaving(false);
     setProcessingProgress(0);
+  };
+
+  // Function to add a custom tag
+  const addCustomTag = (category: keyof typeof customTags) => {
+    const newTag = newTagInputs[category].trim();
+    if (newTag && !customTags[category].includes(newTag)) {
+      setCustomTags(prev => ({
+        ...prev,
+        [category]: [...prev[category], newTag]
+      }));
+      setNewTagInputs(prev => ({
+        ...prev,
+        [category]: ''
+      }));
+    }
+  };
+
+  // Function to remove a custom tag
+  const removeCustomTag = (category: keyof typeof customTags, tagToRemove: string) => {
+    setCustomTags(prev => ({
+      ...prev,
+      [category]: prev[category].filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  // Function to get all available tags for a category
+  const getAllTagsForCategory = (category: string) => {
+    switch (category) {
+      case 'type':
+        return [...suggestedTags.type.map(t => t.label), ...customTags.type];
+      case 'season':
+        return [...suggestedTags.season.map(t => t.label), ...customTags.season];
+      case 'style':
+        return [...suggestedTags.style.map(t => t.label), ...customTags.style];
+      case 'size':
+        return [...suggestedTags.size, ...customTags.size];
+      default:
+        return [];
+    }
   };
 
   const renderStepIndicator = () => (
@@ -524,23 +601,59 @@ export default function AddItemScreen() {
         <View style={styles.tagCategory}>
           <Text style={styles.tagCategoryLabel}>Type</Text>
           <View style={styles.tagChipsContainer}>
-            {suggestedTags.type.map((tag, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.tagChip,
-                  formData.type === tag.value && styles.tagChipSelected
-                ]}
-                onPress={() => setFormData(prev => ({ ...prev, type: tag.value as ClothingType }))}
-              >
-                <Text style={[
-                  styles.tagChipText,
-                  formData.type === tag.value && styles.tagChipTextSelected
-                ]}>
-                  {tag.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {getAllTagsForCategory('type').map((tag, index) => {
+              const isSelected = formData.type === (suggestedTags.type.find(t => t.label === tag)?.value || tag);
+              const isCustom = customTags.type.includes(tag);
+              
+              return (
+                <View key={index} style={styles.tagChipWrapper}>
+                  <TouchableOpacity
+                    style={[
+                      styles.tagChip,
+                      isSelected && styles.tagChipSelected
+                    ]}
+                    onPress={() => {
+                      const value = suggestedTags.type.find(t => t.label === tag)?.value || tag;
+                      setFormData(prev => ({ ...prev, type: value as ClothingType }));
+                    }}
+                  >
+                    <Text style={[
+                      styles.tagChipText,
+                      isSelected && styles.tagChipTextSelected
+                    ]}>
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                  {isCustom && (
+                    <TouchableOpacity
+                      style={styles.removeTagButton}
+                      onPress={() => removeCustomTag('type', tag)}
+                    >
+                      <X size={12} color="#EF4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+          
+          {/* Add custom type tag */}
+          <View style={styles.addTagContainer}>
+            <TextInput
+              style={styles.addTagInput}
+              placeholder="Ajouter un type personnalisé"
+              placeholderTextColor="#C7C7CC"
+              value={newTagInputs.type}
+              onChangeText={(text) => setNewTagInputs(prev => ({ ...prev, type: text }))}
+              onSubmitEditing={() => addCustomTag('type')}
+            />
+            <TouchableOpacity
+              style={styles.addTagButton}
+              onPress={() => addCustomTag('type')}
+              disabled={!newTagInputs.type.trim()}
+            >
+              <Plus size={16} color={newTagInputs.type.trim() ? "#EE7518" : "#C7C7CC"} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -548,23 +661,59 @@ export default function AddItemScreen() {
         <View style={styles.tagCategory}>
           <Text style={styles.tagCategoryLabel}>Saison</Text>
           <View style={styles.tagChipsContainer}>
-            {suggestedTags.season.map((season, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.tagChip,
-                  formData.season === season.value && styles.tagChipSelected
-                ]}
-                onPress={() => setFormData(prev => ({ ...prev, season: season.value as Season }))}
-              >
-                <Text style={[
-                  styles.tagChipText,
-                  formData.season === season.value && styles.tagChipTextSelected
-                ]}>
-                  {season.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {getAllTagsForCategory('season').map((tag, index) => {
+              const isSelected = formData.season === (suggestedTags.season.find(t => t.label === tag)?.value || tag);
+              const isCustom = customTags.season.includes(tag);
+              
+              return (
+                <View key={index} style={styles.tagChipWrapper}>
+                  <TouchableOpacity
+                    style={[
+                      styles.tagChip,
+                      isSelected && styles.tagChipSelected
+                    ]}
+                    onPress={() => {
+                      const value = suggestedTags.season.find(t => t.label === tag)?.value || tag;
+                      setFormData(prev => ({ ...prev, season: value as Season }));
+                    }}
+                  >
+                    <Text style={[
+                      styles.tagChipText,
+                      isSelected && styles.tagChipTextSelected
+                    ]}>
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                  {isCustom && (
+                    <TouchableOpacity
+                      style={styles.removeTagButton}
+                      onPress={() => removeCustomTag('season', tag)}
+                    >
+                      <X size={12} color="#EF4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+          
+          {/* Add custom season tag */}
+          <View style={styles.addTagContainer}>
+            <TextInput
+              style={styles.addTagInput}
+              placeholder="Ajouter une saison personnalisée"
+              placeholderTextColor="#C7C7CC"
+              value={newTagInputs.season}
+              onChangeText={(text) => setNewTagInputs(prev => ({ ...prev, season: text }))}
+              onSubmitEditing={() => addCustomTag('season')}
+            />
+            <TouchableOpacity
+              style={styles.addTagButton}
+              onPress={() => addCustomTag('season')}
+              disabled={!newTagInputs.season.trim()}
+            >
+              <Plus size={16} color={newTagInputs.season.trim() ? "#EE7518" : "#C7C7CC"} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -572,23 +721,59 @@ export default function AddItemScreen() {
         <View style={styles.tagCategory}>
           <Text style={styles.tagCategoryLabel}>Style</Text>
           <View style={styles.tagChipsContainer}>
-            {suggestedTags.style.map((style, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.tagChip,
-                  formData.style === style.value && styles.tagChipSelected
-                ]}
-                onPress={() => setFormData(prev => ({ ...prev, style: style.value as Style }))}
-              >
-                <Text style={[
-                  styles.tagChipText,
-                  formData.style === style.value && styles.tagChipTextSelected
-                ]}>
-                  {style.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {getAllTagsForCategory('style').map((tag, index) => {
+              const isSelected = formData.style === (suggestedTags.style.find(t => t.label === tag)?.value || tag);
+              const isCustom = customTags.style.includes(tag);
+              
+              return (
+                <View key={index} style={styles.tagChipWrapper}>
+                  <TouchableOpacity
+                    style={[
+                      styles.tagChip,
+                      isSelected && styles.tagChipSelected
+                    ]}
+                    onPress={() => {
+                      const value = suggestedTags.style.find(t => t.label === tag)?.value || tag;
+                      setFormData(prev => ({ ...prev, style: value as Style }));
+                    }}
+                  >
+                    <Text style={[
+                      styles.tagChipText,
+                      isSelected && styles.tagChipTextSelected
+                    ]}>
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                  {isCustom && (
+                    <TouchableOpacity
+                      style={styles.removeTagButton}
+                      onPress={() => removeCustomTag('style', tag)}
+                    >
+                      <X size={12} color="#EF4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+          
+          {/* Add custom style tag */}
+          <View style={styles.addTagContainer}>
+            <TextInput
+              style={styles.addTagInput}
+              placeholder="Ajouter un style personnalisé"
+              placeholderTextColor="#C7C7CC"
+              value={newTagInputs.style}
+              onChangeText={(text) => setNewTagInputs(prev => ({ ...prev, style: text }))}
+              onSubmitEditing={() => addCustomTag('style')}
+            />
+            <TouchableOpacity
+              style={styles.addTagButton}
+              onPress={() => addCustomTag('style')}
+              disabled={!newTagInputs.style.trim()}
+            >
+              <Plus size={16} color={newTagInputs.style.trim() ? "#EE7518" : "#C7C7CC"} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -596,23 +781,56 @@ export default function AddItemScreen() {
         <View style={styles.tagCategory}>
           <Text style={styles.tagCategoryLabel}>Taille</Text>
           <View style={styles.tagChipsContainer}>
-            {suggestedTags.size.map((size, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.tagChip,
-                  formData.size === size && styles.tagChipSelected
-                ]}
-                onPress={() => setFormData(prev => ({ ...prev, size }))}
-              >
-                <Text style={[
-                  styles.tagChipText,
-                  formData.size === size && styles.tagChipTextSelected
-                ]}>
-                  {size}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {getAllTagsForCategory('size').map((tag, index) => {
+              const isSelected = formData.size === tag;
+              const isCustom = customTags.size.includes(tag);
+              
+              return (
+                <View key={index} style={styles.tagChipWrapper}>
+                  <TouchableOpacity
+                    style={[
+                      styles.tagChip,
+                      isSelected && styles.tagChipSelected
+                    ]}
+                    onPress={() => setFormData(prev => ({ ...prev, size: tag }))}
+                  >
+                    <Text style={[
+                      styles.tagChipText,
+                      isSelected && styles.tagChipTextSelected
+                    ]}>
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                  {isCustom && (
+                    <TouchableOpacity
+                      style={styles.removeTagButton}
+                      onPress={() => removeCustomTag('size', tag)}
+                    >
+                      <X size={12} color="#EF4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+          
+          {/* Add custom size tag */}
+          <View style={styles.addTagContainer}>
+            <TextInput
+              style={styles.addTagInput}
+              placeholder="Ajouter une taille personnalisée"
+              placeholderTextColor="#C7C7CC"
+              value={newTagInputs.size}
+              onChangeText={(text) => setNewTagInputs(prev => ({ ...prev, size: text }))}
+              onSubmitEditing={() => addCustomTag('size')}
+            />
+            <TouchableOpacity
+              style={styles.addTagButton}
+              onPress={() => addCustomTag('size')}
+              disabled={!newTagInputs.size.trim()}
+            >
+              <Plus size={16} color={newTagInputs.size.trim() ? "#EE7518" : "#C7C7CC"} />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -1185,6 +1403,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginBottom: 12,
+  },
+  tagChipWrapper: {
+    position: 'relative',
   },
   tagChip: {
     backgroundColor: '#F8F9FA',
@@ -1193,6 +1415,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    paddingRight: 24, // Extra space for remove button
   },
   tagChipSelected: {
     backgroundColor: '#EE7518',
@@ -1205,6 +1428,43 @@ const styles = StyleSheet.create({
   },
   tagChipTextSelected: {
     color: '#FFFFFF',
+  },
+  removeTagButton: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addTagContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  addTagInput: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 12,
+    color: '#1C1C1E',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  addTagButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   manualInputsSection: {
     backgroundColor: '#FFFFFF',
