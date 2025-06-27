@@ -13,7 +13,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { ArrowLeft, Mail, Lock, EyeOff, Eye, User, Sparkles, Phone } from 'lucide-react-native';
+import { ArrowLeft, Mail, Lock, EyeOff, Eye, User, Sparkles, Phone, AlertCircle } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 
@@ -72,21 +72,30 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
       }
 
       if (result.error) {
-        // Handle specific authentication errors
-        if (result.error.message.includes('Invalid login credentials')) {
-          setError('Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.');
+        // Handle specific authentication errors with more detailed messages
+        if (result.error.message.includes('Invalid login credentials') || 
+            result.error.message.includes('invalid_credentials')) {
+          if (mode === 'signin') {
+            setError('Email ou mot de passe incorrect. Vérifiez vos identifiants ou créez un compte si vous n\'en avez pas.');
+          } else {
+            setError('Erreur lors de la création du compte. Veuillez réessayer.');
+          }
         } else if (result.error.message.includes('Email not confirmed')) {
-          setError('Veuillez confirmer votre email avant de vous connecter.');
+          setError('Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte de réception.');
         } else if (result.error.message.includes('User already registered')) {
-          setError('Un compte existe déjà avec cet email. Essayez de vous connecter.');
+          setError('Un compte existe déjà avec cet email. Essayez de vous connecter ou utilisez un autre email.');
         } else if (result.error.message.includes('Password should be at least')) {
           setError('Le mot de passe doit contenir au moins 6 caractères.');
         } else if (result.error.message.includes('Unable to validate email address')) {
           setError('Format d\'email invalide. Veuillez vérifier votre adresse email.');
+        } else if (result.error.message.includes('Email rate limit exceeded')) {
+          setError('Trop de tentatives. Veuillez attendre quelques minutes avant de réessayer.');
+        } else if (result.error.message.includes('Signup disabled')) {
+          setError('Les inscriptions sont temporairement désactivées. Veuillez réessayer plus tard.');
         } else {
           // Generic error message for other cases
           if (mode === 'signin') {
-            setError('Erreur de connexion. Vérifiez vos identifiants et réessayez.');
+            setError('Erreur de connexion. Vérifiez vos identifiants et votre connexion internet.');
           } else {
             setError('Erreur lors de la création du compte. Veuillez réessayer.');
           }
@@ -104,7 +113,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
     } catch (err) {
       console.error('❌ Unexpected auth error:', err);
       if (mode === 'signin') {
-        setError('Erreur de connexion. Vérifiez votre connexion internet et réessayez.');
+        setError('Erreur de connexion inattendue. Vérifiez votre connexion internet et réessayez.');
       } else {
         setError('Erreur lors de la création du compte. Vérifiez votre connexion internet et réessayez.');
       }
@@ -195,6 +204,10 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
     } finally {
       setGoogleLoading(false);
     }
+  };
+
+  const clearError = () => {
+    setError('');
   };
 
   if (mode === 'signup') {
@@ -309,6 +322,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                     value={fullName}
                     onChangeText={setFullName}
                     autoCapitalize="words"
+                    onFocus={clearError}
                   />
                 </View>
               </View>
@@ -329,6 +343,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
+                        onFocus={clearError}
                       />
                     </View>
                   </View>
@@ -347,6 +362,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                         secureTextEntry={!showPassword}
                         autoCapitalize="none"
                         autoCorrect={false}
+                        onFocus={clearError}
                       />
                       <TouchableOpacity
                         style={styles.eyeIcon}
@@ -378,6 +394,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                         keyboardType="phone-pad"
                         autoCapitalize="none"
                         autoCorrect={false}
+                        onFocus={clearError}
                       />
                     </View>
                   </View>
@@ -403,7 +420,19 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
               {/* Error Message */}
               {error ? (
                 <View style={styles.errorContainer}>
+                  <View style={styles.errorHeader}>
+                    <AlertCircle size={16} color="#DC2626" />
+                    <Text style={styles.errorTitle}>Erreur</Text>
+                  </View>
                   <Text style={styles.errorText}>{error}</Text>
+                  {error.includes('Email ou mot de passe incorrect') && (
+                    <TouchableOpacity 
+                      style={styles.errorAction}
+                      onPress={onToggleMode}
+                    >
+                      <Text style={styles.errorActionText}>Créer un nouveau compte</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ) : null}
 
@@ -536,6 +565,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                       keyboardType="email-address"
                       autoCapitalize="none"
                       autoCorrect={false}
+                      onFocus={clearError}
                     />
                   </View>
                 </View>
@@ -554,6 +584,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                       secureTextEntry={!showPassword}
                       autoCapitalize="none"
                       autoCorrect={false}
+                      onFocus={clearError}
                     />
                     <TouchableOpacity
                       style={styles.eyeIcon}
@@ -584,6 +615,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
                       keyboardType="phone-pad"
                       autoCapitalize="none"
                       autoCorrect={false}
+                      onFocus={clearError}
                     />
                   </View>
                 </View>
@@ -593,7 +625,27 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
             {/* Error Message */}
             {error ? (
               <View style={styles.errorContainer}>
+                <View style={styles.errorHeader}>
+                  <AlertCircle size={16} color="#DC2626" />
+                  <Text style={styles.errorTitle}>Erreur de connexion</Text>
+                </View>
                 <Text style={styles.errorText}>{error}</Text>
+                {error.includes('Email ou mot de passe incorrect') && (
+                  <View style={styles.errorActions}>
+                    <TouchableOpacity 
+                      style={styles.errorAction}
+                      onPress={onToggleMode}
+                    >
+                      <Text style={styles.errorActionText}>Créer un nouveau compte</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.errorAction}
+                      onPress={() => Alert.alert('Mot de passe oublié', 'Cette fonctionnalité sera bientôt disponible.')}
+                    >
+                      <Text style={styles.errorActionText}>Mot de passe oublié ?</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             ) : null}
 
@@ -612,7 +664,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
               )}
             </TouchableOpacity>
 
-            {authMethod === 'email' && (
+            {authMethod === 'email' && !error && (
               /* Forgot Password */
               <TouchableOpacity
                 style={styles.forgotPasswordButton}
@@ -918,19 +970,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Error
+  // Enhanced Error Styles
   errorContainer: {
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FECACA',
     borderRadius: 12,
-    padding: 12,
+    padding: 16,
     marginBottom: 16,
+  },
+  errorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  errorTitle: {
+    fontSize: 16,
+    color: '#DC2626',
+    fontWeight: '600',
+    marginLeft: 8,
   },
   errorText: {
     fontSize: 14,
     color: '#DC2626',
-    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  errorActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  errorAction: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DC2626',
+  },
+  errorActionText: {
+    fontSize: 14,
+    color: '#DC2626',
     fontWeight: '500',
   },
 
