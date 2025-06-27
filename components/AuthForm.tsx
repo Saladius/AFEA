@@ -13,7 +13,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { ArrowLeft, Mail, Lock, EyeOff, Eye, User, Sparkles, Phone, AlertCircle } from 'lucide-react-native';
+import { ArrowLeft, Mail, Lock, EyeOff, Eye, User, Sparkles, Phone, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 
