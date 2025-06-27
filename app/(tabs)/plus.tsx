@@ -57,7 +57,7 @@ interface ClothingFormData {
   name: string;
 }
 
-// Suggested tags for each category
+// Suggested tags for each category (excluding color and material)
 const suggestedTags = {
   type: [
     { label: 'T-shirt', value: 'top' },
@@ -78,14 +78,6 @@ const suggestedTags = {
     { label: 'Sac', value: 'accessories' },
     { label: 'Ceinture', value: 'accessories' },
     { label: 'Chapeau', value: 'accessories' },
-  ],
-  color: [
-    'Bleu', 'Rouge', 'Vert', 'Jaune', 'Orange', 'Violet', 'Rose', 'Marron',
-    'Noir', 'Blanc', 'Gris', 'Beige', 'Marine', 'Bordeaux', 'Kaki', 'Turquoise'
-  ],
-  material: [
-    'Coton', 'Jersey', 'Lin', 'Soie', 'Laine', 'Polyester', 'Denim', 'Cuir',
-    'Velours', 'Cachemire', 'Viscose', 'Elasthanne', 'Nylon', 'Acrylique'
   ],
   season: [
     { label: 'Printemps', value: 'spring' },
@@ -552,48 +544,72 @@ export default function AddItemScreen() {
           </View>
         </View>
 
-        {/* Couleur */}
+        {/* Saison */}
         <View style={styles.tagCategory}>
-          <Text style={styles.tagCategoryLabel}>Couleur</Text>
+          <Text style={styles.tagCategoryLabel}>Saison</Text>
           <View style={styles.tagChipsContainer}>
-            {suggestedTags.color.map((color, index) => (
+            {suggestedTags.season.map((season, index) => (
               <TouchableOpacity
                 key={index}
                 style={[
                   styles.tagChip,
-                  formData.color === color && styles.tagChipSelected
+                  formData.season === season.value && styles.tagChipSelected
                 ]}
-                onPress={() => setFormData(prev => ({ ...prev, color }))}
+                onPress={() => setFormData(prev => ({ ...prev, season: season.value as Season }))}
               >
                 <Text style={[
                   styles.tagChipText,
-                  formData.color === color && styles.tagChipTextSelected
+                  formData.season === season.value && styles.tagChipTextSelected
                 ]}>
-                  {color}
+                  {season.label}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Matière */}
+        {/* Style */}
         <View style={styles.tagCategory}>
-          <Text style={styles.tagCategoryLabel}>Matière</Text>
+          <Text style={styles.tagCategoryLabel}>Style</Text>
           <View style={styles.tagChipsContainer}>
-            {suggestedTags.material.map((material, index) => (
+            {suggestedTags.style.map((style, index) => (
               <TouchableOpacity
                 key={index}
                 style={[
                   styles.tagChip,
-                  formData.material === material && styles.tagChipSelected
+                  formData.style === style.value && styles.tagChipSelected
                 ]}
-                onPress={() => setFormData(prev => ({ ...prev, material }))}
+                onPress={() => setFormData(prev => ({ ...prev, style: style.value as Style }))}
               >
                 <Text style={[
                   styles.tagChipText,
-                  formData.material === material && styles.tagChipTextSelected
+                  formData.style === style.value && styles.tagChipTextSelected
                 ]}>
-                  {material}
+                  {style.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Taille */}
+        <View style={styles.tagCategory}>
+          <Text style={styles.tagCategoryLabel}>Taille</Text>
+          <View style={styles.tagChipsContainer}>
+            {suggestedTags.size.map((size, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.tagChip,
+                  formData.size === size && styles.tagChipSelected
+                ]}
+                onPress={() => setFormData(prev => ({ ...prev, size }))}
+              >
+                <Text style={[
+                  styles.tagChipText,
+                  formData.size === size && styles.tagChipTextSelected
+                ]}>
+                  {size}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -603,7 +619,9 @@ export default function AddItemScreen() {
 
       {/* Manual inputs */}
       <View style={styles.manualInputsSection}>
-        <Text style={styles.sectionTitle}>Nom du vêtement</Text>
+        <Text style={styles.sectionTitle}>Détails du vêtement</Text>
+        
+        <Text style={styles.inputLabel}>Nom du vêtement</Text>
         <TextInput
           style={styles.textInput}
           value={formData.name}
@@ -612,28 +630,25 @@ export default function AddItemScreen() {
           placeholderTextColor="#C7C7CC"
         />
 
-        <Text style={styles.sectionTitle}>Saison</Text>
-        <View style={styles.tagChipsContainer}>
-          {suggestedTags.season.map((season, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.tagChip,
-                formData.season === season.value && styles.tagChipSelected
-              ]}
-              onPress={() => setFormData(prev => ({ ...prev, season: season.value as Season }))}
-            >
-              <Text style={[
-                styles.tagChipText,
-                formData.season === season.value && styles.tagChipTextSelected
-              ]}>
-                {season.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Text style={styles.inputLabel}>Couleur</Text>
+        <TextInput
+          style={styles.textInput}
+          value={formData.color}
+          onChangeText={(color) => setFormData(prev => ({ ...prev, color }))}
+          placeholder="Bleu, Rouge, Blanc..."
+          placeholderTextColor="#C7C7CC"
+        />
 
-        <Text style={styles.sectionTitle}>Marque (optionnel)</Text>
+        <Text style={styles.inputLabel}>Matière</Text>
+        <TextInput
+          style={styles.textInput}
+          value={formData.material}
+          onChangeText={(material) => setFormData(prev => ({ ...prev, material }))}
+          placeholder="Coton, Jersey, Lin..."
+          placeholderTextColor="#C7C7CC"
+        />
+
+        <Text style={styles.inputLabel}>Marque (optionnel)</Text>
         <TextInput
           style={styles.textInput}
           value={formData.brand}
@@ -690,6 +705,18 @@ export default function AddItemScreen() {
               {suggestedTags.season.find(s => s.value === formData.season)?.label || formData.season}
             </Text>
           </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Style</Text>
+            <Text style={styles.detailValue}>
+              {suggestedTags.style.find(s => s.value === formData.style)?.label || formData.style}
+            </Text>
+          </View>
+          {formData.size && (
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Taille</Text>
+              <Text style={styles.detailValue}>{formData.size}</Text>
+            </View>
+          )}
           {formData.brand && (
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Marque</Text>
@@ -1189,6 +1216,13 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1C1C1E',
+    marginBottom: 8,
+    marginTop: 16,
+  },
   textInput: {
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
@@ -1198,7 +1232,6 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     borderWidth: 1,
     borderColor: '#E5E2E1',
-    marginBottom: 16,
   },
   errorMessage: {
     backgroundColor: '#FEF2F2',
