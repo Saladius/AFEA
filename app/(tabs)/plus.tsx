@@ -9,6 +9,7 @@ import {
   Dimensions,
   Image,
   Alert,
+  Modal,
   Platform,
   TextInput,
 } from 'react-native';
@@ -111,6 +112,8 @@ export default function AddItemScreen() {
   const [selectedImageMimeType, setSelectedImageMimeType] = useState<string>('image/jpeg');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   
   const progressValue = useSharedValue(0);
@@ -371,26 +374,10 @@ export default function AddItemScreen() {
       // Save to database using the hook
       const savedItem = await addClothingItem(clothingItem);
       console.log('✅ Item saved successfully:', savedItem);
+      setShowSuccessModal(true);
 
-      Alert.alert(
-        'Article ajouté !',
-        'Votre vêtement a été ajouté à votre garde-robe.',
-        [
-          {
-            text: 'Voir ma garde-robe',
-            onPress: () => {
-              resetForm();
-              router.replace('/(tabs)/wardrobe');
-            }
-          },
-          {
-            text: 'Ajouter un autre',
-            onPress: () => {
-              resetForm();
-            }
-          }
-        ]
-      );
+      setShowSuccessModal(true);
+
     } catch (error) {
       console.error('❌ Error saving clothing item:', error);
       
@@ -1640,6 +1627,88 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   confirmButton: {
+    backgroundColor: '#10B981',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: '#1C1C1E',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#EE7518',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  modalButtonSecondary: {
+    backgroundColor: '#E5E2E1',
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: '#1C1C1E',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#EE7518',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  modalButtonSecondary: {
+    backgroundColor: '#E5E2E1',
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
     backgroundColor: '#10B981',
   },
 });
