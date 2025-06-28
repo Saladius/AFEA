@@ -23,6 +23,8 @@ export default function ProfileScreen() {
 
   const handleSignOut = async () => {
     try {
+      console.log('🔄 User initiated logout');
+      
       // Show confirmation alert
       Alert.alert(
         'Se déconnecter',
@@ -39,9 +41,10 @@ export default function ProfileScreen() {
             onPress: async () => {
               console.log('User confirmed logout');
               try {
+                console.log('🔄 Calling signOut...');
                 await signOut();
                 console.log('Logout successful');
-                // The redirect will be handled automatically by the auth state change in _layout.tsx
+                console.log('✅ Logout successful, redirection will be handled by _layout.tsx');
               } catch (err) {
                 console.error('Logout error:', err);
                 Alert.alert('Erreur', 'Une erreur est survenue lors de la déconnexion.');
@@ -54,9 +57,12 @@ export default function ProfileScreen() {
     } catch (error) {
       console.error('Error showing alert:', error);
       // Fallback: direct logout without confirmation
+      console.log('🔄 Fallback: Direct logout without confirmation');
       try {
         await signOut();
+        console.log('✅ Fallback logout successful');
       } catch (err) {
+        console.error('❌ Fallback logout failed:', err);
         Alert.alert('Erreur', 'Une erreur est survenue lors de la déconnexion.');
       }
     }

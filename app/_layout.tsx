@@ -74,22 +74,39 @@ export default function RootLayout() {
     const onAuthPage = segments[0] === 'auth';
     const onLandingPage = segments[0] === 'landing';
     
+    console.log('🔍 Auth state check:', {
+      user: user ? 'authenticated' : 'not authenticated',
+      segments: segments,
+      inAuthGroup,
+      onAuthPage,
+      onLandingPage,
+      loading
+    });
+    
     if (user) {
       // User is authenticated
       if (onAuthPage || onLandingPage) {
         // Authenticated user trying to access auth or landing page, redirect to home
+        console.log('🔄 Redirecting authenticated user from auth/landing to home');
         router.replace('/(tabs)');
       } else if (!inAuthGroup && segments.length > 0) {
         // Authenticated user on other pages, redirect to home
+        console.log('🔄 Redirecting authenticated user to home');
         router.replace('/(tabs)');
       }
     } else {
       // User is not authenticated
       if (inAuthGroup) {
         // Unauthenticated user trying to access protected routes, redirect to auth
+        console.log('🔄 Redirecting unauthenticated user from protected route to auth');
         router.replace('/auth');
       } else if (segments.length > 0 && !onLandingPage && !onAuthPage) {
         // Unauthenticated user on other pages (not landing or auth), redirect to auth
+        console.log('🔄 Redirecting unauthenticated user from other page to auth');
+        router.replace('/auth');
+      } else if (segments.length === 0 && !onLandingPage && !onAuthPage) {
+        // User is at root and not authenticated, redirect to auth
+        console.log('🔄 Redirecting unauthenticated user from root to auth');
         router.replace('/auth');
       }
     }
