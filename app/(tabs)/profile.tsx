@@ -25,46 +25,22 @@ export default function ProfileScreen() {
     try {
       console.log('🔄 User initiated logout');
       
-      // Show confirmation alert
-      Alert.alert(
-        'Se déconnecter',
-        'Êtes-vous sûr de vouloir vous déconnecter ?',
-        [
-          { 
-            text: 'Annuler', 
-            style: 'cancel',
-            onPress: () => console.log('Logout cancelled')
-          },
-          {
-            text: 'Se déconnecter',
-            style: 'destructive',
-            onPress: async () => {
-              console.log('User confirmed logout');
-              try {
-                console.log('🔄 Calling signOut...');
-                await signOut();
-                console.log('Logout successful');
-                console.log('✅ Logout successful, redirection will be handled by _layout.tsx');
-              } catch (err) {
-                console.error('Logout error:', err);
-                Alert.alert('Erreur', 'Une erreur est survenue lors de la déconnexion.');
-              }
-            },
-          },
-        ],
-        { cancelable: false } // Prevent dismissing by tapping outside
-      );
+      // Direct logout without confirmation for better UX
+      console.log('🔄 Calling signOut...');
+      await signOut();
+      console.log('✅ Logout successful, redirection will be handled by _layout.tsx');
+      
+      // Force immediate redirect as backup
+      setTimeout(() => {
+        router.replace('/auth');
+      }, 100);
+      
     } catch (error) {
-      console.error('Error showing alert:', error);
-      // Fallback: direct logout without confirmation
-      console.log('🔄 Fallback: Direct logout without confirmation');
-      try {
-        await signOut();
-        console.log('✅ Fallback logout successful');
-      } catch (err) {
-        console.error('❌ Fallback logout failed:', err);
-        Alert.alert('Erreur', 'Une erreur est survenue lors de la déconnexion.');
-      }
+      console.error('❌ Logout error:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue lors de la déconnexion.');
+      
+      // Force redirect even on error
+      router.replace('/auth');
     }
   };
 

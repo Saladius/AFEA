@@ -460,21 +460,26 @@ export function useAuth() {
     try {
       console.log('🔄 Signing out user');
       
+      // Clear local state immediately for faster UI response
+      setSession(null);
+      setUser(null);
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('❌ Error signing out:', error);
-        throw error;
+        // Don't throw error, just log it - user state is already cleared
+        console.log('⚠️ Supabase signOut had error but user state is cleared');
       }
       
-      // Clear local state immediately
-      setSession(null);
-      setUser(null);
       console.log('✅ User signed out successfully');
       
       return { error: null };
     } catch (error) {
       console.error('❌ Sign out error:', error);
-      throw error;
+      // Clear state even on error to ensure user can't stay logged in
+      setSession(null);
+      setUser(null);
+      return { error };
     }
   };
 

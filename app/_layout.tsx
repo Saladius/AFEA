@@ -108,6 +108,10 @@ export default function RootLayout() {
         // User is at root and not authenticated, redirect to auth
         console.log('🔄 Redirecting unauthenticated user from root to auth');
         router.replace('/auth');
+      } else if (segments[0] === 'profile' || (segments[0] === '(tabs)' && segments[1] === 'profile')) {
+        // User logged out from profile page, redirect to auth
+        console.log('🔄 Redirecting from profile after logout to auth');
+        router.replace('/auth');
       }
     }
   }, [user, loading, segments, router]);
