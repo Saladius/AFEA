@@ -113,7 +113,6 @@ export default function AddItemScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   
   const progressValue = useSharedValue(0);
@@ -376,8 +375,6 @@ export default function AddItemScreen() {
       console.log('✅ Item saved successfully:', savedItem);
       setShowSuccessModal(true);
 
-      setShowSuccessModal(true);
-
     } catch (error) {
       console.error('❌ Error saving clothing item:', error);
       
@@ -439,6 +436,16 @@ export default function AddItemScreen() {
     setIsSaving(false);
     setProcessingProgress(0);
   };
+  const handleSuccessAction = (action: 'wardrobe' | 'another') => {
+    setShowSuccessModal(false);
+    resetForm();
+    
+    if (action === 'wardrobe') {
+      router.replace('/(tabs)/wardrobe');
+    }
+    // If 'another', stay on the same screen for adding another item
+  };
+
 
   // Function to add a custom tag
   const addCustomTag = (category: keyof typeof customTags) => {
@@ -1088,6 +1095,37 @@ export default function AddItemScreen() {
           )}
         </View>
       )}
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Article ajouté ! ✅</Text>
+            <Text style={styles.modalMessage}>
+              Votre vêtement a été ajouté à votre garde-robe avec succès.
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.modalButton}
+              onPress={() => handleSuccessAction('wardrobe')}
+            >
+              <Text style={styles.modalButtonText}>Voir ma garde-robe</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.modalButtonSecondary]}
+              onPress={() => handleSuccessAction('another')}
+            >
+              <Text style={[styles.modalButtonText, { color: '#1C1C1E' }]}>Ajouter un autre</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1629,86 +1667,63 @@ const styles = StyleSheet.create({
   confirmButton: {
     backgroundColor: '#10B981',
   },
+  
+  // Success Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    width: '80%',
+    width: '85%',
+    maxWidth: 400,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 24,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    marginBottom: 12,
+    color: '#1C1C1E',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   modalMessage: {
-    fontSize: 14,
-    color: '#1C1C1E',
+    fontSize: 16,
+    color: '#8E8E93',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    lineHeight: 22,
   },
   modalButton: {
     backgroundColor: '#EE7518',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginBottom: 10,
-  },
-  modalButtonSecondary: {
-    backgroundColor: '#E5E2E1',
-  },
-  modalButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     marginBottom: 12,
-  },
-  modalMessage: {
-    fontSize: 14,
-    color: '#1C1C1E',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  modalButton: {
-    backgroundColor: '#EE7518',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginBottom: 10,
+    width: '100%',
+    shadowColor: '#EE7518',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   modalButtonSecondary: {
     backgroundColor: '#E5E2E1',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   modalButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
-  },
-    backgroundColor: '#10B981',
   },
 });
