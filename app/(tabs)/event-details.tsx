@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Trash2, Calendar, MapPin, Clock, CreditCard as Edit3, RefreshCw, Heart } from 'lucide-react-native';
+import { ArrowLeft, Trash2, Calendar, MapPin, Clock, Edit, RefreshCw, Heart } from 'lucide-react-native';
 import { useEvents } from '@/hooks/useEvents';
 import { useClothes } from '@/hooks/useClothes';
 import { Event, ClothingItem } from '@/types/database';
@@ -241,7 +241,7 @@ export default function EventDetailsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.editButton}>
-              <Edit3 size={20} color="#EE7518" />
+              <Edit size={20} color="#EE7518" />
             </TouchableOpacity>
           </View>
         </View>
