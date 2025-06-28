@@ -58,6 +58,19 @@ interface ClothingFormData {
   name: string;
 }
 
+// Systèmes de tailles
+const sizeSystems = ['US', 'EUR'];
+const sizesBySystem = {
+  US: {
+    clothing: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL'],
+    shoes: ['5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5', '11', '11.5', '12']
+  },
+  EUR: {
+    clothing: ['34', '36', '38', '40', '42', '44', '46', '48', '50', '52'],
+    shoes: ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47']
+  }
+};
+
 // Suggested tags for each category
 const suggestedTags = {
   type: [
@@ -114,6 +127,7 @@ export default function AddItemScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedSizeSystem, setSelectedSizeSystem] = useState<'US' | 'EUR'>('EUR');
   
   const progressValue = useSharedValue(0);
   const cropProgressValue = useSharedValue(0);
@@ -512,7 +526,13 @@ export default function AddItemScreen() {
       case 'style':
         return [...suggestedTags.style.map(t => t.label), ...customTags.style];
       case 'size':
-        return [...suggestedTags.size, ...customTags.size];
+        // Déterminer si c'est des chaussures ou des vêtements selon le type sélectionné
+        const currentType = selectedTags.type || formData.type;
+        const isShoes = currentType === 'Chaussures' || 
+                       suggestedTags.type.find(t => t.label === currentType)?.value === 'shoes';
+        const categoryType = isShoes ? 'shoes' : 'clothing';
+        const systemSizes = sizesBySystem[selectedSizeSystem][categoryType];
+        return [...systemSizes, ...customTags.size];
       default:
         return [];
     }
@@ -816,6 +836,36 @@ export default function AddItemScreen() {
         {/* Taille */}
         <View style={styles.tagCategory}>
           <Text style={styles.tagCategoryLabel}>Taille</Text>
+          
+          {/* Sélection du système de tailles */}
+          <View style={styles.sizeSystemContainer}>
+            <Text style={styles.sizeSystemLabel}>Système de tailles :</Text>
+            <View style={styles.sizeSystemButtons}>
+              {sizeSystems.map((system) => (
+                <TouchableOpacity
+                  key={system}
+                  style={[
+                    styles.sizeSystemButton,
+                    selectedSizeSystem === system && styles.sizeSystemButtonActive
+                  ]}
+                  onPress={() => {
+                    setSelectedSizeSystem(system as 'US' | 'EUR');
+                    // Reset selected size when changing system
+                    setSelectedTags(prev => ({ ...prev, size: null }));
+                    setFormData(prev => ({ ...prev, size: '' }));
+                  }}
+                >
+                  <Text style={[
+                    styles.sizeSystemButtonText,
+                    selectedSizeSystem === system && styles.sizeSystemButtonTextActive
+                  ]}>
+                    {system}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           <View style={styles.tagChipsContainer}>
             {getAllTagsForCategory('size').map((tag, index) => {
               const isSelected = selectedTags.size === tag;
@@ -854,7 +904,7 @@ export default function AddItemScreen() {
           <View style={styles.addTagContainer}>
             <TextInput
               style={styles.addTagInput}
-              placeholder="Ajouter une taille personnalisée"
+              placeholder={`Ajouter une taille ${selectedSizeSystem} personnalisée`}
               placeholderTextColor="#C7C7CC"
               value={newTagInputs.size}
               onChangeText={(text) => setNewTagInputs(prev => ({ ...prev, size: text }))}
@@ -1776,5 +1826,39 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     fontSize: 16,
     fontWeight: '600',
+  },
+
+  // Size System Styles
+  sizeSystemContainer: {
+    marginBottom: 12,
+  },
+  sizeSystemLabel: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginBottom: 6,
+  },
+  sizeSystemButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  sizeSystemButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  sizeSystemButtonActive: {
+    backgroundColor: '#EE7518',
+    borderColor: '#EE7518',
+  },
+  sizeSystemButtonText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  sizeSystemButtonTextActive: {
+    color: '#FFFFFF',
   },
 });
