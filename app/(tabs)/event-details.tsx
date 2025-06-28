@@ -26,13 +26,6 @@ export default function EventDetailsScreen() {
   
   const [event, setEvent] = useState<Event | null>(null);
   const [suggestedOutfit, setSuggestedOutfit] = useState<ClothingItem[]>([]);
-  const [likedItems, setLikedItems] = useState<string[]>([]);
-
-  const toggleLike = (itemId: string) => {
-    setLikedItems(prev =>
-      prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
-    );
-  };
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -252,7 +245,10 @@ export default function EventDetailsScreen() {
           <View style={styles.outfitHeader}>
             <Text style={styles.outfitTitle}>Tenue suggérée</Text>
             <View style={styles.outfitActions}>
-              <TouchableOpacity style={styles.refreshButton} onPress={() => generateSuggestedOutfit(event)}>
+              <TouchableOpacity 
+                style={styles.refreshButton}
+                onPress={() => generateSuggestedOutfit(event)}
+              >
                 <RefreshCw size={20} color="#EE7518" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.favoriteButton}>
@@ -263,18 +259,14 @@ export default function EventDetailsScreen() {
 
           {suggestedOutfit.length > 0 ? (
             <View style={styles.outfitGrid}>
-              {suggestedOutfit.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.outfitItem}
-                  onPress={() => toggleLike(item.id)}
-                >
-                  <Image
-                    source={{ uri: item.image_url }}
+              {suggestedOutfit.map((item, index) => (
+                <View key={item.id} style={styles.outfitItem}>
+                  <Image 
+                    source={{ uri: item.image_url }} 
                     style={styles.outfitImage}
                     resizeMode="cover"
                   />
-                </TouchableOpacity>
+                </View>
               ))}
             </View>
           ) : (
