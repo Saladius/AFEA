@@ -71,18 +71,29 @@ export default function RootLayout() {
     if (loading) return; // Attendre que l'état d'authentification soit chargé
 
     const inAuthGroup = segments[0] === '(tabs)';
+    const onAuthPage = segments[0] === 'auth';
+    const onLandingPage = segments[0] === 'landing';
     
-    if (user && !inAuthGroup) {
-      // Utilisateur connecté mais pas dans les onglets, rediriger vers le dashboard
-      router.replace('/(tabs)');
-    } else if (!user && inAuthGroup) {
-      // Utilisateur non connecté mais dans les onglets, rediriger vers landing
-      router.replace('/landing');
-    } else if (!user && segments.length > 0 && segments[0] !== 'landing' && segments[0] !== 'auth') {
-      // Utilisateur non connecté et pas sur landing/auth, rediriger vers landing
-      router.replace('/landing');
+    if (user) {
+      // User is authenticated
+      if (onAuthPage || onLandingPage) {
+        // Authenticated user trying to access auth or landing page, redirect to home
+        router.replace('/(tabs)');
+      } else if (!inAuthGroup && segments.length > 0) {
+        // Authenticated user on other pages, redirect to home
+        router.replace('/(tabs)');
+      }
+    } else {
+      // User is not authenticated
+      if (inAuthGroup) {
+        // Unauthenticated user trying to access protected routes, redirect to auth
+        router.replace('/auth');
+      } else if (segments.length > 0 && !onLandingPage && !onAuthPage) {
+        // Unauthenticated user on other pages (not landing or auth), redirect to auth
+        router.replace('/auth');
+      }
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, router]);
 
   if (!fontsLoaded && !fontError) {
     return null;
