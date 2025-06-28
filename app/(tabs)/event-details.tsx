@@ -27,6 +27,12 @@ export default function EventDetailsScreen() {
   const [event, setEvent] = useState<Event | null>(null);
   const [suggestedOutfit, setSuggestedOutfit] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [likedItems, setLikedItems] = useState<string[]>([]);
+  const handleLike = (itemId: string) => {
+    setLikedItems(prev =>
+      prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
+    );
+  };
 
   useEffect(() => {
     if (id && events.length > 0) {
@@ -266,6 +272,9 @@ export default function EventDetailsScreen() {
                     style={styles.outfitImage}
                     resizeMode="cover"
                   />
+                  <TouchableOpacity style={styles.itemFavoriteButton} onPress={() => handleLike(item.id)}>
+                    <Heart size={20} color={likedItems.includes(item.id) ? "#EF4444" : "#8E8E93"} />
+                  </TouchableOpacity>
                 </View>
               ))}
             </View>
@@ -470,6 +479,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  itemFavoriteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 4,
+    zIndex: 1,
   },
   outfitGrid: {
     flexDirection: 'row',
