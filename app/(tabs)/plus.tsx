@@ -49,6 +49,7 @@ const steps: StepConfig[] = [
 
 interface ClothingFormData {
   type: ClothingType;
+  category: 'top' | 'bottom' | 'shoes' | 'accessories';
   color: string;
   material: string;
   season: Season;
@@ -135,6 +136,7 @@ export default function AddItemScreen() {
 
   const [formData, setFormData] = useState<ClothingFormData>({
     type: 'top',
+    category: 'top',
     color: '',
     material: '',
     season: 'all',
@@ -143,6 +145,50 @@ export default function AddItemScreen() {
     size: '',
     name: '',
   });
+
+  // Catégories principales avec leurs types correspondants
+  const categories = [
+    { 
+      id: 'top' as const, 
+      label: 'Haut', 
+      icon: '👕',
+      types: ['top', 'outerwear', 'dress', 'suit'] 
+    },
+    { 
+      id: 'bottom' as const, 
+      label: 'Bas', 
+      icon: '👖',
+      types: ['bottom'] 
+    },
+    { 
+      id: 'shoes' as const, 
+      label: 'Chaussures', 
+      icon: '👠',
+      types: ['shoes'] 
+    },
+    { 
+      id: 'accessories' as const, 
+      label: 'Accessoire', 
+      icon: '👜',
+      types: ['accessories'] 
+    },
+  ];
+
+  // Palette de couleurs prédéfinies
+  const colorPalette = [
+    { name: 'orange', color: '#EE7518', label: 'Orange' },
+    { name: 'noir', color: '#000000', label: 'Noir' },
+    { name: 'gris', color: '#6B7280', label: 'Gris' },
+    { name: 'rouge', color: '#EF4444', label: 'Rouge' },
+    { name: 'bleu', color: '#3B82F6', label: 'Bleu' },
+    { name: 'vert', color: '#10B981', label: 'Vert' },
+    { name: 'jaune', color: '#F59E0B', label: 'Jaune' },
+    { name: 'violet', color: '#8B5CF6', label: 'Violet' },
+    { name: 'rose', color: '#EC4899', label: 'Rose' },
+    { name: 'blanc', color: '#FFFFFF', label: 'Blanc' },
+    { name: 'marron', color: '#A16207', label: 'Marron' },
+    { name: 'beige', color: '#D4A574', label: 'Beige' },
+  ];
 
   // State for selected tags (only one per category)
   const [selectedTags, setSelectedTags] = useState<{
@@ -426,12 +472,25 @@ export default function AddItemScreen() {
     }
   };
 
+  // Mise à jour du type quand la catégorie change
+  const handleCategoryChange = (categoryId: 'top' | 'bottom' | 'shoes' | 'accessories') => {
+    const category = categories.find(c => c.id === categoryId);
+    if (category) {
+      setFormData(prev => ({
+        ...prev,
+        category: categoryId,
+        type: category.types[0] as ClothingType, // Prendre le premier type de la catégorie
+      }));
+    }
+  };
+
   const resetForm = () => {
     setCurrentStep('photo');
     setSelectedImage(null);
     setSelectedImageMimeType('image/jpeg');
     setFormData({
       type: 'top',
+      category: 'top',
       color: '',
       material: '',
       season: 'all',
@@ -662,13 +721,38 @@ export default function AddItemScreen() {
       <View style={styles.tagsSection}>
         <Text style={styles.sectionTitle}>Tags générés</Text>
         
+        {/* Catégorie */}
+        <View style={styles.tagCategory}>
+          <Text style={styles.tagCategoryLabel}>Catégorie</Text>
+          <View style={styles.categoryGrid}>
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryButton,
+                  formData.category === category.id && styles.categoryButtonActive
+                ]}
+                onPress={() => handleCategoryChange(category.id)}
+              >
+                <Text style={styles.categoryIcon}>{category.icon}</Text>
+                <Text style={[
+                  styles.categoryText,
+                  formData.category === category.id && styles.categoryTextActive
+                ]}>
+                  {category.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         {/* Type */}
         <View style={styles.tagCategory}>
           <Text style={styles.tagCategoryLabel}>Type</Text>
           <View style={styles.tagChipsContainer}>
-            {getAllTagsForCategory('type').map((tag, index) => {
-              const isSelected = selectedTags.type === tag;
-              const isCustom = customTags.type.includes(tag);
+            {categories.find(c => c.id === formData.category)?.types.map((type, index) => {
+              const isSelected = selectedTags.type === type;
+              const isCustom = customTags.type.includes(type);
               
               return (
                 <View key={index} style={styles.tagChipWrapper}>
@@ -677,19 +761,19 @@ export default function AddItemScreen() {
                       styles.tagChip,
                       isSelected && styles.tagChipSelected
                     ]}
-                    onPress={() => selectTag('type', tag)}
+                    onPress={() => selectTag('type', type)}
                   >
                     <Text style={[
                       styles.tagChipText,
                       isSelected && styles.tagChipTextSelected
                     ]}>
-                      {tag}
+                      {type}
                     </Text>
                   </TouchableOpacity>
                   {isCustom && (
                     <TouchableOpacity
                       style={styles.removeTagButton}
-                      onPress={() => removeCustomTag('type', tag)}
+                      onPress={() => removeCustomTag('type', type)}
                     >
                       <X size={12} color="#EF4444" />
                     </TouchableOpacity>
@@ -717,6 +801,51 @@ export default function AddItemScreen() {
               <Plus size={16} color={newTagInputs.type.trim() ? "#EE7518" : "#C7C7CC"} />
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Couleur avec palette */}
+        <View style={styles.tagCategory}>
+          <Text style={styles.tagCategoryLabel}>Couleur principale</Text>
+          <View style={styles.colorPalette}>
+            {colorPalette.map((colorItem) => (
+              <TouchableOpacity
+                key={colorItem.name}
+                style={[
+                  styles.colorCircle,
+                  { backgroundColor: colorItem.color },
+                  colorItem.color === '#FFFFFF' && styles.whiteColorBorder,
+                  formData.color === colorItem.name && styles.colorCircleSelected
+                ]}
+                onPress={() => setFormData(prev => ({ ...prev, color: colorItem.name }))}
+              >
+                {formData.color === colorItem.name && (
+                  <View style={styles.colorSelectedIndicator}>
+                    <Text style={[
+                      styles.colorCheckmark,
+                      { color: colorItem.color === '#FFFFFF' || colorItem.color === '#F59E0B' ? '#1C1C1E' : '#FFFFFF' }
+                    ]}>
+                      ✓
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+          
+          {/* Option pour couleur personnalisée */}
+          <TouchableOpacity
+            style={styles.customColorButton}
+            onPress={() => {
+              // Ici on pourrait ouvrir un modal pour saisir une couleur personnalisée
+              const customColor = prompt('Entrez une couleur personnalisée:');
+              if (customColor) {
+                setFormData(prev => ({ ...prev, color: customColor }));
+              }
+            }}
+          >
+            <Plus size={16} color="#8E8E93" />
+            <Text style={styles.customColorText}>Autre couleur</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Saison */}
@@ -931,15 +1060,6 @@ export default function AddItemScreen() {
           value={formData.name}
           onChangeText={(name) => setFormData(prev => ({ ...prev, name }))}
           placeholder="T-shirt bleu basique"
-          placeholderTextColor="#C7C7CC"
-        />
-
-        <Text style={styles.inputLabel}>Couleur</Text>
-        <TextInput
-          style={styles.textInput}
-          value={formData.color}
-          onChangeText={(color) => setFormData(prev => ({ ...prev, color }))}
-          placeholder="Bleu, Rouge, Blanc..."
           placeholderTextColor="#C7C7CC"
         />
 
@@ -1860,5 +1980,99 @@ const styles = StyleSheet.create({
   },
   sizeSystemButtonTextActive: {
     color: '#FFFFFF',
+  },
+
+  // Styles pour les catégories
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  categoryButton: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#F8F9FA',
+    borderWidth: 2,
+    borderColor: '#E5E2E1',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryButtonActive: {
+    backgroundColor: '#EE7518',
+    borderColor: '#EE7518',
+  },
+  categoryIcon: {
+    fontSize: 24,
+  },
+  categoryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  categoryTextActive: {
+    color: '#FFFFFF',
+  },
+  
+  // Styles pour la palette de couleurs
+  colorPalette: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
+  },
+  colorCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  whiteColorBorder: {
+    borderColor: '#E5E2E1',
+  },
+  colorCircleSelected: {
+    borderColor: '#1C1C1E',
+    borderWidth: 3,
+  },
+  colorSelectedIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  colorCheckmark: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  customColorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8F9FA',
+    borderWidth: 2,
+    borderColor: '#E5E2E1',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  customColorText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '500',
   },
 });
