@@ -33,13 +33,6 @@ export default function EventDetailsScreen() {
       prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
     );
   };
-  const [likedItems, setLikedItems] = useState<string[]>([]);
-
-  const toggleLike = (itemId: string) => {
-    setLikedItems(prev =>
-      prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
-    );
-  };
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
