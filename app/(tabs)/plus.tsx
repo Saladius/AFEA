@@ -1028,7 +1028,8 @@ export default function AddItemScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
+      <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -1097,10 +1098,10 @@ export default function AddItemScreen() {
           )}
         </View>
       )}
-    </SafeAreaView>
+      </SafeAreaView>
 
-    {/* Success Modal */}
-    <Modal
+      {/* Success Modal */}
+      <Modal
       visible={showSuccessModal}
       transparent={true}
       animationType="fade"
@@ -1141,7 +1142,8 @@ export default function AddItemScreen() {
           </View>
         </View>
       </View>
-    </Modal>
+      </Modal>
+    </>
   );
 }
 
