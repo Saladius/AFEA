@@ -8,10 +8,12 @@ import {
   Image,
   Dimensions,
   Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Trash2, Calendar, MapPin, Clock, CreditCard as Edit, RefreshCw, Heart } from 'lucide-react-native';
+import { ArrowLeft, Trash2, Calendar, MapPin, Clock, CreditCard as Edit, RefreshCw, Heart, X, Check } from 'lucide-react-native';
 import { useEvents } from '@/hooks/useEvents';
 import { useClothes } from '@/hooks/useClothes';
 import { Event, ClothingItem } from '@/types/database';
@@ -28,6 +30,17 @@ export default function EventDetailsScreen() {
   const [suggestedOutfit, setSuggestedOutfit] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [likedItems, setLikedItems] = useState<string[]>([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    event_date: '',
+    event_time: '',
+    location: '',
+    event_type: 'casual' as 'casual' | 'formal' | 'sport' | 'party',
+    icon: '📅',
+  });
+  const [saving, setSaving] = useState(false);
   const handleLike = (itemId: string) => {
     setLikedItems(prev =>
       prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
@@ -39,6 +52,16 @@ export default function EventDetailsScreen() {
       const foundEvent = events.find(e => e.id === id);
       if (foundEvent) {
         setEvent(foundEvent);
+        // Initialize edit form with current event data
+        setEditForm({
+          title: foundEvent.title,
+          description: foundEvent.description || '',
+          event_date: foundEvent.event_date,
+          event_time: foundEvent.event_time,
+          location: foundEvent.location || '',
+          event_type: foundEvent.event_type,
+          icon: foundEvent.icon,
+        });
         generateSuggestedOutfit(foundEvent);
       }
     }
@@ -99,6 +122,56 @@ export default function EventDetailsScreen() {
         },
       ]
     );
+  };
+
+  const handleEdit = () => {
+    setShowEditModal(true);
+  };
+
+  const handleSave = async () => {
+    if (!event) return;
+
+    if (!editForm.title.trim()) {
+      Alert.alert('Erreur', 'Le titre est obligatoire');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updatedEvent = await updateEvent(event.id, {
+        title: editForm.title.trim(),
+        description: editForm.description.trim() || null,
+        event_date: editForm.event_date,
+        event_time: editForm.event_time,
+        location: editForm.location.trim() || null,
+        event_type: editForm.event_type,
+        icon: editForm.icon,
+      });
+      
+      setEvent(updatedEvent);
+      setShowEditModal(false);
+      Alert.alert('Succès', 'Événement mis à jour avec succès');
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de mettre à jour l\'événement');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    // Reset form to original values
+    if (event) {
+      setEditForm({
+        title: event.title,
+        description: event.description || '',
+        event_date: event.event_date,
+        event_time: event.event_time,
+        location: event.location || '',
+        event_type: event.event_type,
+        icon: event.icon,
+      });
+    }
+    setShowEditModal(false);
   };
 
   const getStatusConfig = (status: string) => {
@@ -240,7 +313,7 @@ export default function EventDetailsScreen() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.editButton}>
+            <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
               <Edit size={20} color="#EE7518" />
             </TouchableOpacity>
           </View>
@@ -290,6 +363,139 @@ export default function EventDetailsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Edit Modal */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCancel}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity style={styles.modalCloseButton} onPress={handleCancel}>
+              <X size={24} color="#1C1C1E" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Modifier l'événement</Text>
+            <TouchableOpacity 
+              style={[styles.modalSaveButton, saving && styles.modalSaveButtonDisabled]} 
+              onPress={handleSave}
+              disabled={saving}
+            >
+              <Check size={24} color="#EE7518" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            {/* Title */}
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Titre *</Text>
+              <TextInput
+                style={styles.formInput}
+                value={editForm.title}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, title: text }))}
+                placeholder="Titre de l'événement"
+                placeholderTextColor="#C7C7CC"
+              />
+            </View>
+
+            {/* Description */}
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Description</Text>
+              <TextInput
+                style={[styles.formInput, styles.formTextArea]}
+                value={editForm.description}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, description: text }))}
+                placeholder="Description de l'événement"
+                placeholderTextColor="#C7C7CC"
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            {/* Date */}
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Date *</Text>
+              <TextInput
+                style={styles.formInput}
+                value={editForm.event_date}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, event_date: text }))}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#C7C7CC"
+              />
+            </View>
+
+            {/* Time */}
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Heure *</Text>
+              <TextInput
+                style={styles.formInput}
+                value={editForm.event_time}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, event_time: text }))}
+                placeholder="HH:MM"
+                placeholderTextColor="#C7C7CC"
+              />
+            </View>
+
+            {/* Location */}
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Lieu</Text>
+              <TextInput
+                style={styles.formInput}
+                value={editForm.location}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, location: text }))}
+                placeholder="Lieu de l'événement"
+                placeholderTextColor="#C7C7CC"
+              />
+            </View>
+
+            {/* Event Type */}
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Type d'événement</Text>
+              <View style={styles.eventTypeContainer}>
+                {(['casual', 'formal', 'sport', 'party'] as const).map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.eventTypeButton,
+                      editForm.event_type === type && styles.eventTypeButtonActive
+                    ]}
+                    onPress={() => setEditForm(prev => ({ ...prev, event_type: type }))}
+                  >
+                    <Text style={[
+                      styles.eventTypeText,
+                      editForm.event_type === type && styles.eventTypeTextActive
+                    ]}>
+                      {type === 'casual' ? 'Décontracté' : 
+                       type === 'formal' ? 'Formel' : 
+                       type === 'sport' ? 'Sport' : 'Fête'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Icon */}
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Icône</Text>
+              <View style={styles.iconContainer}>
+                {['📅', '🍽️', '🎉', '🏃', '🎩', '💼', '🎵', '🎬'].map((iconOption) => (
+                  <TouchableOpacity
+                    key={iconOption}
+                    style={[
+                      styles.iconButton,
+                      editForm.icon === iconOption && styles.iconButtonActive
+                    ]}
+                    onPress={() => setEditForm(prev => ({ ...prev, icon: iconOption }))}
+                  >
+                    <Text style={styles.iconText}>{iconOption}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -515,6 +721,121 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     marginBottom: 8,
     textAlign: 'center',
+  },
+
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E2E1',
+  },
+  modalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1C1C1E',
+  },
+  modalSaveButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEF3E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalSaveButtonDisabled: {
+    opacity: 0.5,
+  },
+  modalContent: {
+    flex: 1,
+    padding: 24,
+  },
+
+  // Form Styles
+  formGroup: {
+    marginBottom: 24,
+  },
+  formLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1C1C1E',
+  },
+  formTextArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  eventTypeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  eventTypeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+  },
+  eventTypeButtonActive: {
+    backgroundColor: '#EE7518',
+    borderColor: '#EE7518',
+  },
+  eventTypeText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  eventTypeTextActive: {
+    color: '#FFFFFF',
+  },
+  iconContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  iconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconButtonActive: {
+    backgroundColor: '#FEF3E2',
+    borderColor: '#EE7518',
+  },
+  iconText: {
+    fontSize: 24,
   },
   emptyOutfitSubtext: {
     fontSize: 14,
