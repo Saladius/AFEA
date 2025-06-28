@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Camera, Image as ImageIcon, X, Plus } from 'lucide-react-native';
+import { ArrowLeft, Camera, Image as ImageIcon, X, Plus, Check } from 'lucide-react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -35,6 +35,19 @@ const { width, height } = Dimensions.get('window');
 type Step = 'photo' | 'crop' | 'tags' | 'confirm';
 
 interface StepConfig {
+  id: Step;
+  number: number;
+  title: string;
+}
+
+const steps: StepConfig[] = [
+  { id: 'photo', number: 1, title: 'Photo' },
+  { id: 'crop', number: 2, title: 'Découpage' },
+  { id: 'tags', number: 3, title: 'Tags' },
+  { id: 'confirm', number: 4, title: 'Confirmer' },
+];
+
+const colors = [
   { label: 'Orange', value: 'orange', color: '#EE7518' },
   { label: 'Noir', value: 'black', color: '#000000' },
   { label: 'Gris', value: 'gray', color: '#6B7280' },
@@ -617,31 +630,53 @@ export default function AddItemScreen() {
   );
 
   const renderCropStep = () => (
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              style={styles.colorsScroll}
-              contentContainerStyle={styles.colorsContainer}
-            >
-              {colors.map((colorOption) => (
-                <TouchableOpacity
-                  key={colorOption.value}
-                  style={[
-                    styles.colorOption,
-                    { backgroundColor: colorOption.color },
-                    formData.color === colorOption.value && styles.colorOptionSelected,
-                    colorOption.value === 'white' && styles.whiteColorBorder
-                  ]}
-                  onPress={() => setFormData(prev => ({ ...prev, color: colorOption.value }))}
-                >
-                  {formData.color === colorOption.value && (
-                    <Check size={16} color={colorOption.value === 'white' || colorOption.value === 'yellow' ? '#333333' : '#FFFFFF'} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            )}
-          </Animated.View>
+    <View style={styles.cropContainer}>
+      <Animated.View style={[styles.imagePreview, pulseStyle]}>
+        {selectedImage && (
+          <Image source={{ uri: selectedImage }} style={styles.cropImage} />
         )}
+        
+        {isProcessing && (
+          <View style={styles.processingOverlay}>
+            <View style={styles.processingContent}>
+              <Text style={styles.processingTitle}>
+                Découpage automatique en cours...
+              </Text>
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBackground} />
+                <Animated.View style={[styles.progressFill, cropProgressStyle]} />
+              </View>
+            </View>
+          </View>
+        )}
+      </Animated.View>
+
+      {/* Color Selection */}
+      <View style={styles.colorSelectionContainer}>
+        <Text style={styles.colorSelectionTitle}>Couleur principale</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.colorsScroll}
+          contentContainerStyle={styles.colorsContainer}
+        >
+          {colors.map((colorOption) => (
+            <TouchableOpacity
+              key={colorOption.value}
+              style={[
+                styles.colorOption,
+                { backgroundColor: colorOption.color },
+                formData.color === colorOption.value && styles.colorOptionSelected,
+                colorOption.value === 'white' && styles.whiteColorBorder
+              ]}
+              onPress={() => setFormData(prev => ({ ...prev, color: colorOption.value }))}
+            >
+              {formData.color === colorOption.value && (
+                <Check size={16} color={colorOption.value === 'white' || colorOption.value === 'yellow' ? '#333333' : '#FFFFFF'} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
       
       {!isProcessing && (
@@ -1483,6 +1518,48 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#EE7518',
     borderRadius: 2,
+  },
+  colorSelectionContainer: {
+    marginTop: 24,
+    width: '100%',
+  },
+  colorSelectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  colorsScroll: {
+    marginTop: 8,
+    flexGrow: 0,
+  },
+  colorsContainer: {
+    paddingHorizontal: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  colorOption: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginHorizontal: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  colorOptionSelected: {
+    borderWidth: 3,
+    borderColor: '#EE7518',
+    transform: [{ scale: 1.1 }],
+  },
+  whiteColorBorder: {
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
   },
   cropInstructions: {
     alignItems: 'center',
