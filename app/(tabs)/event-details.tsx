@@ -28,7 +28,7 @@ export default function EventDetailsScreen() {
   const [suggestedOutfit, setSuggestedOutfit] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [likedItems, setLikedItems] = useState<string[]>([]);
-
+  const handleLike = (itemId: string) => {
   // Dummy outfit items for complete outfit display
   const dummyOutfitItems = [
     {
@@ -57,7 +57,6 @@ export default function EventDetailsScreen() {
     }
   ];
 
-  const handleLike = (itemId: string) => {
     setLikedItems(prev =>
       prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
     );
