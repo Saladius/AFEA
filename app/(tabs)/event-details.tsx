@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Trash2, Calendar, MapPin, Clock, Edit, RefreshCw, Heart, X, Check } from 'lucide-react-native';
+import { ArrowLeft, Trash2, Calendar, MapPin, Clock, CreditCard as Edit, RefreshCw, Heart, X, Check } from 'lucide-react-native';
 import { useEvents } from '@/hooks/useEvents';
 import { useClothes } from '@/hooks/useClothes';
 import { Event, ClothingItem } from '@/types/database';
