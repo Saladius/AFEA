@@ -26,6 +26,20 @@ export default function EventDetailsScreen() {
   
   const [event, setEvent] = useState<Event | null>(null);
   const [suggestedOutfit, setSuggestedOutfit] = useState<ClothingItem[]>([]);
+  const [likedItems, setLikedItems] = useState<string[]>([]);
+
+  const toggleLike = (itemId: string) => {
+    setLikedItems(prev =>
+      prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
+    );
+  };
+  const [likedItems, setLikedItems] = useState<string[]>([]);
+
+  const toggleLike = (itemId: string) => {
+    setLikedItems(prev =>
+      prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
+    );
+  };
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -256,21 +270,20 @@ export default function EventDetailsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-
-          {suggestedOutfit.length > 0 ? (
-            <View style={styles.outfitGrid}>
-              {suggestedOutfit.map((item, index) => (
-                <View key={item.id} style={styles.outfitItem}>
-                  <Image 
-                    source={{ uri: item.image_url }} 
-                    style={styles.outfitImage}
-                    resizeMode="cover"
-                  />
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.emptyOutfit}>
+        ) : (
+          <View style={styles.emptyOutfit}>
+            <Text style={styles.emptyOutfitText}>
+              Aucune tenue suggérée disponible
+            </Text>
+            <Text style={styles.emptyOutfitSubtext}>
+              Ajoutez des vêtements à votre garde-robe pour obtenir des suggestions
+            </Text>
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  </SafeAreaView>
+);
               <Text style={styles.emptyOutfitText}>
                 Aucune tenue suggérée disponible
               </Text>
