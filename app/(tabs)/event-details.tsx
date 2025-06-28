@@ -105,18 +105,27 @@ export default function EventDetailsScreen() {
 
     Alert.alert(
       'Supprimer l\'événement',
-      'Êtes-vous sûr de vouloir supprimer cet événement ?',
+      `Êtes-vous sûr de vouloir supprimer "${event.title}" ? Cette action est irréversible.`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Supprimer',
           style: 'destructive',
           onPress: async () => {
+            setLoading(true);
             try {
+              console.log('🗑️ Deleting event:', event.id);
               await deleteEvent(event.id);
+              console.log('✅ Event deleted successfully');
               router.back();
             } catch (error) {
-              Alert.alert('Erreur', 'Impossible de supprimer l\'événement');
+              console.error('❌ Error deleting event:', error);
+              Alert.alert(
+                'Erreur', 
+                'Impossible de supprimer l\'événement. Veuillez réessayer.'
+              );
+            } finally {
+              setLoading(false);
             }
           },
         },
