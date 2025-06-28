@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Trash2, Calendar, MapPin, Clock, CreditCard as Edit3, RefreshCw, Heart } from 'lucide-react-native';
+import { ArrowLeft, Trash2, Calendar, MapPin, Clock, Settings, RefreshCw, Heart } from 'lucide-react-native';
 import { useEvents } from '@/hooks/useEvents';
 import { useClothes } from '@/hooks/useClothes';
 import { Event, ClothingItem } from '@/types/database';
@@ -28,11 +28,125 @@ export default function EventDetailsScreen() {
   const [suggestedOutfit, setSuggestedOutfit] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [likedItems, setLikedItems] = useState<string[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    title: '',
+    description: '',
+    location: '',
+    event_time: '',
+  });
+
   const handleLike = (itemId: string) => {
     setLikedItems(prev =>
       prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
     );
   };
+
+  const handleEditEvent = () => {
+    if (!event) return;
+    
+    setEditData({
+      title: event.title,
+      description: event.description || '',
+      location: event.location || '',
+      event_time: event.event_time,
+    });
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!event) return;
+
+    try {
+      await updateEvent(event.id, {
+        title: editData.title,
+        description: editData.description || null,
+        location: editData.location || null,
+        event_time: editData.event_time,
+      });
+      setIsEditing(false);
+      Alert.alert('Succès', 'L\'événement a été mis à jour avec succès.');
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de mettre à jour l\'événement.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditData({
+      title: '',
+      description: '',
+      location: '',
+      event_time: '',
+    });
+  };
+
+  if (isEditing && event) {
+    return (
+      <SafeAreaView style={styles.container}>
+        {/* Edit Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={handleCancelEdit}>
+            <ArrowLeft size={24} color="#1C1C1E" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Modifier l'événement</Text>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSaveEdit}>
+            <Text style={styles.saveButtonText}>Sauvegarder</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.editContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.editForm}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Titre de l'événement</Text>
+              <TextInput
+                style={styles.textInput}
+                value={editData.title}
+                onChangeText={(text) => setEditData(prev => ({ ...prev, title: text }))}
+                placeholder="Entrez le titre de l'événement"
+                placeholderTextColor="#C7C7CC"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Description</Text>
+              <TextInput
+                style={[styles.textInput, styles.textArea]}
+                value={editData.description}
+                onChangeText={(text) => setEditData(prev => ({ ...prev, description: text }))}
+                placeholder="Description de l'événement (optionnel)"
+                placeholderTextColor="#C7C7CC"
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Lieu</Text>
+              <TextInput
+                style={styles.textInput}
+                value={editData.location}
+                onChangeText={(text) => setEditData(prev => ({ ...prev, location: text }))}
+                placeholder="Lieu de l'événement (optionnel)"
+                placeholderTextColor="#C7C7CC"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Heure</Text>
+              <TextInput
+                style={styles.textInput}
+                value={editData.event_time}
+                onChangeText={(text) => setEditData(prev => ({ ...prev, event_time: text }))}
+                placeholder="HH:MM"
+                placeholderTextColor="#C7C7CC"
+              />
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   useEffect(() => {
     if (id && events.length > 0) {
@@ -241,7 +355,8 @@ export default function EventDetailsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.editButton}>
-              <Edit3 size={20} color="#EE7518" />
+              <TouchableOpacity style={styles.editButton} onPress={handleEditEvent}>
+              <Settings size={20} color="#EE7518" />
             </TouchableOpacity>
           </View>
         </View>
@@ -521,5 +636,48 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     textAlign: 'center',
     lineHeight: 20,
+  },
+
+  // Edit Form Styles
+  editContent: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  editForm: {
+    padding: 24,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E2E1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1C1C1E',
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  saveButton: {
+    backgroundColor: '#EE7518',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
