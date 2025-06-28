@@ -251,9 +251,9 @@ export default function EventDetailsScreen() {
         <View style={styles.outfitSection}>
           <View style={styles.outfitHeader}>
             <Text style={styles.outfitTitle}>Tenue suggérée</Text>
-            <View style={styles.outfitActions}>
-              <TouchableOpacity 
-                style={styles.refreshButton}
+            <TouchableOpacity style={styles.refreshButton} onPress={() => generateSuggestedOutfit(event!)}>
+              <RefreshCw size={20} color="#EE7518" />
+            </TouchableOpacity>
                 onPress={() => generateSuggestedOutfit(event)}
               >
                 <RefreshCw size={20} color="#EE7518" />
