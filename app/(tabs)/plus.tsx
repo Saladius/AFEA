@@ -112,6 +112,7 @@ export default function AddItemScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   const progressValue = useSharedValue(0);
   const cropProgressValue = useSharedValue(0);
@@ -372,25 +373,8 @@ export default function AddItemScreen() {
       const savedItem = await addClothingItem(clothingItem);
       console.log('✅ Item saved successfully:', savedItem);
 
-      Alert.alert(
-        'Article ajouté !',
-        'Votre vêtement a été ajouté à votre garde-robe.',
-        [
-          {
-            text: 'Voir ma garde-robe',
-            onPress: () => {
-              resetForm();
-              router.replace('/(tabs)/wardrobe');
-            }
-          },
-          {
-            text: 'Ajouter un autre',
-            onPress: () => {
-              resetForm();
-            }
-          }
-        ]
-      );
+      // Show success modal
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('❌ Error saving clothing item:', error);
       
@@ -413,6 +397,17 @@ export default function AddItemScreen() {
       Alert.alert('Erreur', errorMessage);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSuccessAction = (action: 'wardrobe' | 'another') => {
+    setShowSuccessModal(false);
+    resetForm();
+    
+    if (action === 'wardrobe') {
+      setTimeout(() => {
+        router.replace('/(tabs)/wardrobe');
+      }, 300);
     }
   };
 
@@ -451,6 +446,7 @@ export default function AddItemScreen() {
     setIsProcessing(false);
     setIsSaving(false);
     setProcessingProgress(0);
+    setShowSuccessModal(false);
   };
 
   // Function to add a custom tag
@@ -1102,6 +1098,50 @@ export default function AddItemScreen() {
         </View>
       )}
     </SafeAreaView>
+
+    {/* Success Modal */}
+    <Modal
+      visible={showSuccessModal}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowSuccessModal(false)}
+    >
+      <View style={styles.successModalOverlay}>
+        <View style={styles.successModalContainer}>
+          {/* Success Icon */}
+          <View style={styles.successIconContainer}>
+            <View style={styles.successIconCircle}>
+              <Text style={styles.successCheckmark}>✓</Text>
+            </View>
+          </View>
+
+          {/* Success Content */}
+          <View style={styles.successContent}>
+            <Text style={styles.successTitle}>Article ajouté !</Text>
+            <Text style={styles.successMessage}>
+              Votre vêtement a été ajouté à votre garde-robe avec succès.
+            </Text>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.successActions}>
+            <TouchableOpacity
+              style={styles.successSecondaryButton}
+              onPress={() => handleSuccessAction('another')}
+            >
+              <Text style={styles.successSecondaryButtonText}>Ajouter un autre</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.successPrimaryButton}
+              onPress={() => handleSuccessAction('wardrobe')}
+            >
+              <Text style={styles.successPrimaryButtonText}>Voir ma garde-robe</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -1641,5 +1681,97 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     backgroundColor: '#10B981',
+  },
+
+  // Success Modal Styles
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  successModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 320,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  successIconContainer: {
+    marginBottom: 24,
+  },
+  successIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#EE7518',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#EE7518',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  successCheckmark: {
+    fontSize: 36,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  successContent: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successMessage: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  successActions: {
+    width: '100%',
+    gap: 12,
+  },
+  successPrimaryButton: {
+    backgroundColor: '#EE7518',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: '#EE7518',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  successPrimaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  successSecondaryButton: {
+    backgroundColor: '#E5E2E1',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  successSecondaryButtonText: {
+    color: '#1C1C1E',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
