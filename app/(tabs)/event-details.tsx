@@ -29,34 +29,6 @@ export default function EventDetailsScreen() {
   const [loading, setLoading] = useState(false);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const handleLike = (itemId: string) => {
-  // Dummy outfit items for complete outfit display
-  const dummyOutfitItems = [
-    {
-      id: 'dummy-1',
-      image_url: 'https://images.pexels.com/photos/1040945/pexels-photo-1040945.jpeg?auto=compress&cs=tinysrgb&w=300&h=400&dpr=1',
-      type: 'top' as const,
-      name: 'T-shirt blanc'
-    },
-    {
-      id: 'dummy-2', 
-      image_url: 'https://images.pexels.com/photos/1598505/pexels-photo-1598505.jpeg?auto=compress&cs=tinysrgb&w=300&h=400&dpr=1',
-      type: 'bottom' as const,
-      name: 'Jean bleu'
-    },
-    {
-      id: 'dummy-3',
-      image_url: 'https://images.pexels.com/photos/1456706/pexels-photo-1456706.jpeg?auto=compress&cs=tinysrgb&w=300&h=400&dpr=1',
-      type: 'shoes' as const,
-      name: 'Baskets blanches'
-    },
-    {
-      id: 'dummy-4',
-      image_url: 'https://images.pexels.com/photos/1040944/pexels-photo-1040944.jpeg?auto=compress&cs=tinysrgb&w=300&h=400&dpr=1',
-      type: 'accessories' as const,
-      name: 'Montre'
-    }
-  ];
-
     setLikedItems(prev =>
       prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
     );
@@ -73,11 +45,23 @@ export default function EventDetailsScreen() {
   }, [id, events]);
 
   const generateSuggestedOutfit = (eventData: Event) => {
-    // For now, always show the complete dummy outfit
-    // In a real app, this would combine user's clothes with suggestions
-    setSuggestedOutfit(dummyOutfitItems as any);
-  };
+    // Simple outfit suggestion based on event type
+    const filteredClothes = clothes.filter(item => {
+      if (eventData.event_type === 'formal') {
+        return item.style === 'formal' || item.style === 'chic';
+      } else if (eventData.event_type === 'sport') {
+        return item.style === 'sport';
+      } else if (eventData.event_type === 'party') {
+        return item.style === 'chic' || item.style === 'formal';
+      } else {
+        return item.style === 'casual';
+      }
+    });
 
+    // Select up to 4 items for the outfit
+    const outfit = filteredClothes.slice(0, 4);
+    setSuggestedOutfit(outfit);
+  };
 
   const handleStatusUpdate = async (newStatus: 'ready' | 'preparing' | 'generate') => {
     if (!event) return;
@@ -279,9 +263,9 @@ export default function EventDetailsScreen() {
             </View>
           </View>
 
-          {dummyOutfitItems.length > 0 ? (
+          {suggestedOutfit.length > 0 ? (
             <View style={styles.outfitGrid}>
-              {dummyOutfitItems.map((item, index) => (
+              {suggestedOutfit.map((item, index) => (
                 <View key={item.id} style={styles.outfitItem}>
                   <Image 
                     source={{ uri: item.image_url }} 
@@ -291,14 +275,6 @@ export default function EventDetailsScreen() {
                   <TouchableOpacity style={styles.itemFavoriteButton} onPress={() => handleLike(item.id)}>
                     <Heart size={20} color={likedItems.includes(item.id) ? "#EF4444" : "#8E8E93"} />
                   </TouchableOpacity>
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.itemName} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                    <Text style={styles.itemType} numberOfLines={1}>
-                      {item.type}
-                    </Text>
-                  </View>
                 </View>
               ))}
             </View>
@@ -512,31 +488,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 4,
     zIndex: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  itemInfo: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 8,
-  },
-  itemName: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  itemType: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    opacity: 0.8,
-    textTransform: 'capitalize',
   },
   outfitGrid: {
     flexDirection: 'row',
