@@ -251,11 +251,8 @@ export default function EventDetailsScreen() {
         <View style={styles.outfitSection}>
           <View style={styles.outfitHeader}>
             <Text style={styles.outfitTitle}>Tenue suggérée</Text>
-            <TouchableOpacity style={styles.refreshButton} onPress={() => generateSuggestedOutfit(event!)}>
-              <RefreshCw size={20} color="#EE7518" />
-            </TouchableOpacity>
-                onPress={() => generateSuggestedOutfit(event)}
-              >
+            <View style={styles.outfitActions}>
+              <TouchableOpacity style={styles.refreshButton} onPress={() => generateSuggestedOutfit(event)}>
                 <RefreshCw size={20} color="#EE7518" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.favoriteButton}>
@@ -263,20 +260,25 @@ export default function EventDetailsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        ) : (
-          <View style={styles.emptyOutfit}>
-            <Text style={styles.emptyOutfitText}>
-              Aucune tenue suggérée disponible
-            </Text>
-            <Text style={styles.emptyOutfitSubtext}>
-              Ajoutez des vêtements à votre garde-robe pour obtenir des suggestions
-            </Text>
-          </View>
-        )}
-      </View>
-    </ScrollView>
-  </SafeAreaView>
-);
+
+          {suggestedOutfit.length > 0 ? (
+            <View style={styles.outfitGrid}>
+              {suggestedOutfit.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.outfitItem}
+                  onPress={() => toggleLike(item.id)}
+                >
+                  <Image
+                    source={{ uri: item.image_url }}
+                    style={styles.outfitImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyOutfit}>
               <Text style={styles.emptyOutfitText}>
                 Aucune tenue suggérée disponible
               </Text>
