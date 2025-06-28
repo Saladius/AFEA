@@ -84,7 +84,10 @@ class WeatherService {
   private baseUrl = 'https://api.openweathermap.org/data/2.5';
 
   private isValidApiKey(): boolean {
-    return !!(this.apiKey && this.apiKey !== 'demo' && this.apiKey.length > 10);
+    return !!(this.apiKey && 
+              this.apiKey !== 'demo' && 
+              this.apiKey !== 'REPLACE_WITH_YOUR_ACTUAL_OPENWEATHER_API_KEY' &&
+              this.apiKey.length > 10);
   }
 
   async getCurrentLocation(): Promise<LocationCoords> {
