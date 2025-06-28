@@ -35,16 +35,18 @@ const { width, height } = Dimensions.get('window');
 type Step = 'photo' | 'crop' | 'tags' | 'confirm';
 
 interface StepConfig {
-  id: Step;
-  title: string;
-  number: number;
-}
-
-const steps: StepConfig[] = [
-  { id: 'photo', title: 'Photo', number: 1 },
-  { id: 'crop', title: 'Découpe', number: 2 },
-  { id: 'tags', title: 'Tags', number: 3 },
-  { id: 'confirm', title: 'Confirmer', number: 4 },
+  { label: 'Orange', value: 'orange', color: '#EE7518' },
+  { label: 'Noir', value: 'black', color: '#000000' },
+  { label: 'Gris', value: 'gray', color: '#6B7280' },
+  { label: 'Rouge', value: 'red', color: '#DC2626' },
+  { label: 'Bleu', value: 'blue', color: '#2563EB' },
+  { label: 'Vert', value: 'green', color: '#16A34A' },
+  { label: 'Jaune', value: 'yellow', color: '#EAB308' },
+  { label: 'Violet', value: 'purple', color: '#9333EA' },
+  { label: 'Rose', value: 'pink', color: '#EC4899' },
+  { label: 'Blanc', value: 'white', color: '#FFFFFF' },
+  { label: 'Marron', value: 'brown', color: '#A16207' },
+  { label: 'Beige', value: 'beige', color: '#D2B48C' },
 ];
 
 interface ClothingFormData {
@@ -615,24 +617,28 @@ export default function AddItemScreen() {
   );
 
   const renderCropStep = () => (
-    <View style={styles.stepContent}>
-      <View style={styles.cropContainer}>
-        {selectedImage && (
-          <Animated.View style={[styles.imagePreview, pulseStyle]}>
-            <Image source={{ uri: selectedImage }} style={styles.cropImage} />
-            
-            {isProcessing && (
-              <View style={styles.processingOverlay}>
-                <View style={styles.processingContent}>
-                  <Text style={styles.processingTitle}>Découpage automatique en cours...</Text>
-                  
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressBackground}>
-                      <Animated.View style={[styles.progressFill, cropProgressStyle]} />
-                    </View>
-                  </View>
-                </View>
-              </View>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              style={styles.colorsScroll}
+              contentContainerStyle={styles.colorsContainer}
+            >
+              {colors.map((colorOption) => (
+                <TouchableOpacity
+                  key={colorOption.value}
+                  style={[
+                    styles.colorOption,
+                    { backgroundColor: colorOption.color },
+                    formData.color === colorOption.value && styles.colorOptionSelected,
+                    colorOption.value === 'white' && styles.whiteColorBorder
+                  ]}
+                  onPress={() => setFormData(prev => ({ ...prev, color: colorOption.value }))}
+                >
+                  {formData.color === colorOption.value && (
+                    <Check size={16} color={colorOption.value === 'white' || colorOption.value === 'yellow' ? '#333333' : '#FFFFFF'} />
+                  )}
+                </TouchableOpacity>
+              ))}
             )}
           </Animated.View>
         )}
