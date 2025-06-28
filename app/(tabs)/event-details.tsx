@@ -8,6 +8,7 @@ import {
   Image,
   Dimensions,
   Alert,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -21,7 +22,7 @@ const { width } = Dimensions.get('window');
 export default function EventDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { events, updateEventStatus, deleteEvent } = useEvents();
+  const { events, updateEventStatus, deleteEvent, updateEvent } = useEvents();
   const { clothes } = useClothes();
   
   const [event, setEvent] = useState<Event | null>(null);
@@ -354,8 +355,7 @@ export default function EventDetailsScreen() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.editButton}>
-              <TouchableOpacity style={styles.editButton} onPress={handleEditEvent}>
+            <TouchableOpacity style={styles.editButton} onPress={handleEditEvent}>
               <Settings size={20} color="#EE7518" />
             </TouchableOpacity>
           </View>
