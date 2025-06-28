@@ -23,7 +23,7 @@ const { width } = Dimensions.get('window');
 export default function EventDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { events, updateEventStatus, deleteEvent } = useEvents();
+  const { events, updateEventStatus, deleteEvent, updateEvent } = useEvents();
   const { clothes } = useClothes();
   
   const [event, setEvent] = useState<Event | null>(null);
