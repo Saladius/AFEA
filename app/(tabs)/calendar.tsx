@@ -554,8 +554,8 @@ export default function CalendarScreen() {
             const IconComponent = iconData?.icon || Utensils;
             
             return (
-              <View key={event.id} style={styles.eventCard}>
-                <View style={[styles.eventIconContainer, { backgroundColor: iconData?.bg }]}>
+              <TouchableOpacity key={event.id} style={styles.eventCard} onPress={() => router.push(`/event-details?id=${event.id}`)}>
+                <View style={[styles.eventIconContainer, { backgroundColor: iconData?.bg }]>
                   <IconComponent size={24} color={iconData?.color} />
                 </View>
                 
@@ -594,7 +594,7 @@ export default function CalendarScreen() {
                     </TouchableOpacity>
                   )}
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })
         )}
