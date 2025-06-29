@@ -275,7 +275,7 @@ export function useAuth() {
               // Set the session with the received tokens
               const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
                 access_token: accessToken,
-                refresh_token: refreshToken || '',
+                refresh_token: refreshToken || null,
               });
               
               if (sessionError) {
