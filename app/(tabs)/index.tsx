@@ -13,6 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
 import { useClothes } from '@/hooks/useClothes';
 import { useWeather } from '@/hooks/useWeather';
+import { useEvents } from '@/hooks/useEvents';
+import { useOutfitGenerator } from '@/hooks/useOutfitGenerator';
+import type { ClothingItem } from '@/types/database';
 import { 
   Plus, 
   Bell, 
@@ -35,6 +38,30 @@ export default function HomeScreen() {
   const { weather, loading: weatherLoading, refreshWeather } = useWeather();
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const { events, loading: eventsLoading } = useEvents();
+
+  // --- Outfit suggestions (V1/V2) ---
+  const { outfit, loading: outfitLoading, generateOutfit } = useOutfitGenerator();
+
+  useEffect(() => {
+    if (!outfit && !outfitLoading) {
+      generateOutfit('casual');
+    }
+  }, [outfit, outfitLoading]);
+
+  // Fonction pour filtrer les événements de la semaine à venir
+  function getEventsForUpcomingWeek() {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const nextWeek = new Date();
+    nextWeek.setDate(today.getDate() + 7);
+    nextWeek.setHours(23,59,59,999);
+    return events.filter(event => {
+      const eventDate = new Date(event.event_date);
+      return eventDate >= today && eventDate <= nextWeek;
+    });
+  }
+  const plannedOutfits = getEventsForUpcomingWeek();
 
   if (!user) {
     return null;
@@ -48,45 +75,11 @@ export default function HomeScreen() {
     { id: 'all', label: 'All', icon: Grid3x3 },
   ];
 
-  const suggestions = [
-    {
-      id: 1,
-      image: 'https://images.pexels.com/photos/1040945/pexels-photo-1040945.jpeg?auto=compress&cs=tinysrgb&w=200&h=300&dpr=1',
-      category: 'Casual'
-    },
-    {
-      id: 2,
-      image: 'https://images.pexels.com/photos/1926769/pexels-photo-1926769.jpeg?auto=compress&cs=tinysrgb&w=200&h=300&dpr=1',
-      category: 'Casual'
-    },
-    {
-      id: 3,
-      image: 'https://images.pexels.com/photos/1536619/pexels-photo-1536619.jpeg?auto=compress&cs=tinysrgb&w=200&h=300&dpr=1',
-      category: 'Casual'
-    },
-    {
-      id: 4,
-      image: 'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg?auto=compress&cs=tinysrgb&w=200&h=300&dpr=1',
-      category: 'Casual'
-    },
-  ];
 
-  const plannedOutfits = [
-    {
-      id: 1,
-      title: 'Team Meeting',
-      time: 'Today, 2:00 PM',
-      type: 'Formal',
-      color: '#8E8E93'
-    },
-    {
-      id: 2,
-      title: 'Dinner Date',
-      time: 'Tonight, 7:00 PM',
-      type: 'Casual',
-      color: '#EE7518'
-    }
-  ];
+
+  const suggestions: ClothingItem[] = (outfit?.clothes || []);
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -160,10 +153,10 @@ export default function HomeScreen() {
           <View style={styles.weatherContainer}>
             <View style={styles.weatherLeft}>
               <Text style={styles.weatherLocation}>
-                {weather?.location || 'Rabat'}
+                {weather?.location ?? 'Rabat'}
               </Text>
               <Text style={styles.weatherTemp}>
-                {weather?.current.temperature || '35'}°
+                {weather?.current.temperature ?? '35'}°
               </Text>
             </View>
             
@@ -198,7 +191,7 @@ export default function HomeScreen() {
         <View style={styles.suggestionsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Suggestions</Text>
-            <TouchableOpacity style={styles.reloadButton}>
+            <TouchableOpacity style={styles.reloadButton} onPress={() => generateOutfit('casual')}>
               <RefreshCw size={16} color="#8E8E93" />
             </TouchableOpacity>
           </View>
@@ -206,20 +199,26 @@ export default function HomeScreen() {
             <Text style={styles.suggestionTitle}>Just Right For Today's Weather</Text>
           </View>
           
+        {suggestions.length > 0 ? (
           <View style={styles.suggestionsGrid}>
             {suggestions.map((item) => (
               <TouchableOpacity key={item.id} style={styles.suggestionCard}>
-                <Image 
-                  source={{ uri: item.image }}
+                <Image
+                  source={{ uri: item.image_url }}
                   style={styles.suggestionImage}
                   resizeMode="cover"
                 />
               </TouchableOpacity>
             ))}
           </View>
+        ) : (
+          <Text style={styles.noSuggestionsText}>
+            Vous n'avez pas encore assez de vêtements pour générer une tenue. Ajoutez-en d'abord dans votre garde-robe.
+          </Text>
+        )}
           
           <View style={styles.categoryTag}>
-            <Text style={styles.categoryTagText}>Casual</Text>
+            <Text style={styles.categoryTagText}>{(outfit as any)?.occasion ?? 'Casual'}</Text>
             <TouchableOpacity style={styles.favoriteButton}>
               <Heart size={16} color="#8E8E93" />
             </TouchableOpacity>
@@ -230,22 +229,37 @@ export default function HomeScreen() {
         <View style={styles.planSection}>
           <View style={styles.planHeader}>
             <Text style={styles.sectionTitle}>Plan Your Outfit</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/calendar')}>
               <Text style={styles.seeMoreText}>See More</Text>
             </TouchableOpacity>
           </View>
           
           <View style={styles.planGrid}>
-            {plannedOutfits.map((outfit) => (
-              <View key={outfit.id} style={styles.planCard}>
-                <View style={[styles.planIcon, { backgroundColor: outfit.color }]}>
-                  <Calendar size={16} color="#FFFFFF" />
-                </View>
-                <Text style={styles.planTitle}>{outfit.title}</Text>
-                <Text style={styles.planTime}>{outfit.time}</Text>
-                <Text style={styles.planType}>{outfit.type}</Text>
-              </View>
-            ))}
+            {plannedOutfits.map((event) => {
+  // Couleur par défaut (modifiable selon event.event_type si besoin)
+  const color = '#EE7518';
+  // Format date/heure
+  let dateTimeLabel = '';
+  try {
+    if (event.event_date && event.event_time) {
+      dateTimeLabel = new Date(event.event_date + 'T' + event.event_time).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+    } else if (event.event_date) {
+      dateTimeLabel = new Date(event.event_date).toLocaleDateString('fr-FR', { dateStyle: 'medium' });
+    }
+  } catch (e) {
+    dateTimeLabel = event.event_date || '';
+  }
+  return (
+    <View key={event.id} style={styles.planCard}>
+      <View style={[styles.planIcon, { backgroundColor: color }]}> 
+        <Calendar size={16} color="#FFFFFF" />
+      </View>
+      <Text style={styles.planTitle}>{event.title}</Text>
+      <Text style={styles.planTime}>{dateTimeLabel}</Text>
+      <Text style={styles.planType}>{event.event_type}</Text>
+    </View>
+  );
+})}
             
             <TouchableOpacity 
               style={styles.addPlanCard}
@@ -476,6 +490,12 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     padding: 8,
+  },
+  noSuggestionsText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    textAlign: 'center',
+    marginBottom: 16,
   },
 
   // Plan Section - Fixed for all cards visible with improved readability

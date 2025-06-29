@@ -35,6 +35,9 @@ export interface Database {
           type: string;
           color: string | null;
           season: string | null;
+          style_tags: string[] | null;
+          weather_tags: string[] | null;
+          formality: 'casual' | 'formal' | 'sport' | 'business' | null;
           size: string | null;
           material: string | null;
           style: string | null;
@@ -57,6 +60,9 @@ export interface Database {
           brand?: string | null;
           model?: string | null;
           tags?: string[] | null;
+          style_tags?: string[] | null;
+          weather_tags?: string[] | null;
+          formality?: 'casual' | 'formal' | 'sport' | 'business' | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -73,6 +79,9 @@ export interface Database {
           brand?: string | null;
           model?: string | null;
           tags?: string[] | null;
+          style_tags?: string[] | null;
+          weather_tags?: string[] | null;
+          formality?: 'casual' | 'formal' | 'sport' | 'business' | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -164,6 +173,9 @@ export interface ClothingItem {
   type: ClothingType;
   color: string | null;
   season: Season | null;
+  style_tags: string[] | null;
+  weather_tags: string[] | null;
+  formality: 'casual' | 'formal' | 'sport' | 'business' | null;
   size: string | null;
   material: string | null;
   style: Style | null;

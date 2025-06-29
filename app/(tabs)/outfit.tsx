@@ -10,31 +10,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
-import { outfitService } from '@/services/outfit';
-import { OutfitSuggestion } from '@/types/database';
+import { useOutfitGenerator } from '@/hooks/useOutfitGenerator';
+
 import OutfitDisplay from '@/components/OutfitDisplay';
+import UpcomingEventsScrollView from '@/components/UpcomingEventsScrollView';
 import { Sparkles, Calendar, Shuffle, Coffee, Briefcase, Dumbbell, Heart, Clock, Star } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function OutfitScreen() {
   const { user } = useAuth();
-  const [outfit, setOutfit] = useState<OutfitSuggestion | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { outfit, loading, generateOutfit, mode, switchMode } = useOutfitGenerator();
   const [occasion, setOccasion] = useState<'casual' | 'formal' | 'workout' | 'date' | 'business' | 'party'>('casual');
 
-  const generateOutfit = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const newOutfit = await outfitService.generateOutfitSuggestion(user.id, occasion);
-      setOutfit(newOutfit);
-    } catch (error) {
-      console.error('Error generating outfit:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleGenerateOutfit = () => {
+    generateOutfit(occasion);
   };
 
   const occasions = [
@@ -59,6 +49,16 @@ export default function OutfitScreen() {
           <Text style={styles.subtitle}>
             Suggestions personnalisées alimentées par l'IA
           </Text>
+        </View>
+
+        {/* Plan your Outfit: Upcoming Events */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📅 Plan your Outfit</Text>
+          <Text style={{ color: '#8E8E93', marginBottom: 8 }}>
+            Consulte tes prochains événements et prépare ta tenue !
+          </Text>
+          {/* Affichage dynamique des événements à venir */}
+          <UpcomingEventsScrollView />
         </View>
 
         {/* Quick Stats */}
@@ -108,7 +108,7 @@ export default function OutfitScreen() {
 
         <TouchableOpacity
           style={styles.generateButton}
-          onPress={generateOutfit}
+          onPress={handleGenerateOutfit}
           disabled={loading}
         >
           <View style={styles.generateButtonContent}>
@@ -133,7 +133,7 @@ export default function OutfitScreen() {
             <OutfitDisplay
               outfit={outfit}
               loading={loading}
-              onRefresh={generateOutfit}
+              onRefresh={handleGenerateOutfit}
             />
           </View>
         )}

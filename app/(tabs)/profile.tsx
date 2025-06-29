@@ -11,8 +11,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
 import { useClothes } from '@/hooks/useClothes';
+import { useOutfitGenerator } from '@/hooks/useOutfitGenerator';
 import { useRouter } from 'expo-router';
-import { User, Settings, LogOut, Shirt, TrendingUp, Calendar, ChevronRight, Crown, Award, Target, Bell, CircleHelp as HelpCircle, Shield } from 'lucide-react-native';
+import { User, Settings, LogOut, Shirt, TrendingUp, Calendar, ChevronRight, Crown, Award, Target, Bell, CircleHelp as HelpCircle, Shield, Sparkles } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -20,6 +21,7 @@ export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { clothes } = useClothes();
   const router = useRouter();
+  const { mode, switchMode } = useOutfitGenerator();
 
   const handleSignOut = async () => {
     try {
@@ -57,6 +59,7 @@ export default function ProfileScreen() {
         { label: 'Paramètres du compte', icon: Settings, onPress: () => {} },
         { label: 'Notifications', icon: Bell, onPress: () => {} },
         { label: 'Confidentialité', icon: Shield, onPress: () => {} },
+        { label: `Mode de génération: ${mode === 'ai' ? 'IA avancée' : 'Basique'}`, icon: Sparkles, onPress: () => switchMode(mode === 'ai' ? 'heuristic' : 'ai') },
       ]
     },
     { 
