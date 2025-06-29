@@ -6,6 +6,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { twilioService } from '@/services/twilio';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configure WebBrowser for OAuth
 if (Platform.OS !== 'web') {
@@ -469,6 +470,30 @@ export function useAuth() {
         console.error('❌ Error signing out:', error);
         // Don't throw error, just log it - user state is already cleared
         console.log('⚠️ Supabase signOut had error but user state is cleared');
+      }
+      
+      // Explicitly clear Supabase auth data from storage to prevent refresh token errors
+      try {
+        if (Platform.OS === 'web') {
+          // Clear from localStorage on web
+          const keys = Object.keys(localStorage);
+          keys.forEach(key => {
+            if (key.includes('supabase.auth.token')) {
+              localStorage.removeItem(key);
+            }
+          });
+        } else {
+          // Clear from AsyncStorage on mobile
+          const keys = await AsyncStorage.getAllKeys();
+          const supabaseKeys = keys.filter(key => key.includes('supabase.auth.token'));
+          if (supabaseKeys.length > 0) {
+            await AsyncStorage.multiRemove(supabaseKeys);
+          }
+        }
+        console.log('✅ Cleared Supabase auth storage');
+      } catch (storageError) {
+        console.error('⚠️ Error clearing auth storage:', storageError);
+        // Don't fail the sign out process if storage clearing fails
       }
       
       console.log('✅ User signed out successfully');
